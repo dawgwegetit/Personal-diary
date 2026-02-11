@@ -22,7 +22,9 @@ export async function getEntries(): Promise<DiaryEntry[]> {
   try {
     const { blobs } = await list({ prefix: BLOB_KEY });
     if (blobs.length === 0) return [];
-    const res = await fetch(blobs[0].url, { cache: "no-store" });
+    const res = await fetch(`${blobs[0].url}?_=${Date.now()}`, {
+      cache: "no-store",
+    });
     return await res.json();
   } catch {
     return [];
@@ -55,7 +57,9 @@ export async function getViews(): Promise<number> {
   try {
     const { blobs } = await list({ prefix: VIEWS_BLOB_KEY });
     if (blobs.length === 0) return 0;
-    const res = await fetch(blobs[0].url, { cache: "no-store" });
+    const res = await fetch(`${blobs[0].url}?_=${Date.now()}`, {
+      cache: "no-store",
+    });
     const data = await res.json();
     return data.count || 0;
   } catch {

@@ -130,23 +130,24 @@ export default function Home() {
     setSaving(true);
 
     try {
+      let res: Response;
       if (editingId) {
-        const res = await fetch("/api/entries", {
+        res = await fetch("/api/entries", {
           method: "PUT",
           headers: authHeaders(),
           body: JSON.stringify({ id: editingId, title, content, mood }),
         });
-        if (!res.ok) return;
       } else {
-        const res = await fetch("/api/entries", {
+        res = await fetch("/api/entries", {
           method: "POST",
           headers: authHeaders(),
           body: JSON.stringify({ title, content, mood }),
         });
-        if (!res.ok) return;
       }
+      if (!res.ok) return;
 
-      await fetchEntries();
+      const data = await res.json();
+      setEntries(data.entries);
       setTitle("");
       setContent("");
       setMood("");

@@ -29,7 +29,7 @@ export async function POST(request: Request) {
   entries.unshift(entry);
   await saveEntries(entries);
 
-  return NextResponse.json(entry, { status: 201 });
+  return NextResponse.json({ entry, entries }, { status: 201 });
 }
 
 export async function PUT(request: Request) {
@@ -56,7 +56,7 @@ export async function PUT(request: Request) {
   };
 
   await saveEntries(entries);
-  return NextResponse.json(entries[index]);
+  return NextResponse.json({ entry: entries[index], entries });
 }
 
 export async function DELETE(request: Request) {
