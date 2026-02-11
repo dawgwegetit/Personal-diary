@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 
 interface DiaryEntry {
   id: string;
@@ -11,7 +11,7 @@ interface DiaryEntry {
   createdAt: number;
 }
 
-const MOODS = ["", "calm", "happy", "sad", "angry", "tired", "inspired"];
+const MOODS = ["calm", "happy", "sad", "angry", "tired", "inspired"];
 
 function formatDate(timestamp: number): string {
   const d = new Date(timestamp);
@@ -30,13 +30,9 @@ function formatTime(timestamp: number): string {
   return `${h % 12 || 12}:${m} ${ampm}`;
 }
 
-function getTodayString(): string {
-  const d = new Date();
-  return d.toISOString().split("T")[0];
-}
-
 export default function Home() {
   const [entries, setEntries] = useState<DiaryEntry[]>([]);
+  const [loading, setLoading] = useState(true);
   const [view, setView] = useState<"list" | "write" | "read">("list");
   const [selectedEntry, setSelectedEntry] = useState<DiaryEntry | null>(null);
   const [title, setTitle] = useState("");
@@ -44,22 +40,48 @@ export default function Home() {
   const [mood, setMood] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Load entries from localStorage
-  useEffect(() => {
-    const saved = localStorage.getItem("diary-entries");
-    if (saved) {
-      setEntries(JSON.parse(saved));
+  // Admin state
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [password, setPassword] = useState("");
+  const [showLogin, setShowLogin] = useState(false);
+  const [loginInput, setLoginInput] = useState("");
+  const [loginError, setLoginError] = useState("");
+
+  const authHeaders = useCallback(() => ({
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${password}`,
+  }), [password]);
+
+  // Fetch entries from API
+  const fetchEntries = useCallback(async () => {
+    try {
+      const res = await fetch("/api/entries");
+      if (res.ok) {
+        const data = await res.json();
+        setEntries(data);
+      }
+    } catch {
+      // silently fail
+    } finally {
+      setLoading(false);
     }
   }, []);
 
-  // Save entries to localStorage
   useEffect(() => {
-    if (entries.length > 0) {
-      localStorage.setItem("diary-entries", JSON.stringify(entries));
+    fetchEntries();
+  }, [fetchEntries]);
+
+  // Restore admin session
+  useEffect(() => {
+    const saved = sessionStorage.getItem("diary-admin");
+    if (saved) {
+      setPassword(saved);
+      setIsAdmin(true);
     }
-  }, [entries]);
+  }, []);
 
   // Auto-focus textarea
   useEffect(() => {
@@ -68,46 +90,78 @@ export default function Home() {
     }
   }, [view]);
 
-  function saveEntry() {
-    if (!content.trim()) return;
-
-    if (editingId) {
-      setEntries((prev) =>
-        prev.map((e) =>
-          e.id === editingId
-            ? { ...e, title: title.trim() || "untitled", content, mood }
-            : e
-        )
-      );
-      setEditingId(null);
-    } else {
-      const entry: DiaryEntry = {
-        id: crypto.randomUUID(),
-        date: getTodayString(),
-        title: title.trim() || "untitled",
-        content,
-        mood,
-        createdAt: Date.now(),
-      };
-      setEntries((prev) => [entry, ...prev]);
+  async function handleLogin() {
+    setLoginError("");
+    try {
+      const res = await fetch("/api/verify", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${loginInput}`,
+        },
+      });
+      if (res.ok) {
+        setPassword(loginInput);
+        setIsAdmin(true);
+        sessionStorage.setItem("diary-admin", loginInput);
+        setShowLogin(false);
+        setLoginInput("");
+      } else {
+        setLoginError("wrong password");
+      }
+    } catch {
+      setLoginError("something went wrong");
     }
+  }
 
-    setTitle("");
-    setContent("");
-    setMood("");
+  function handleLogout() {
+    setIsAdmin(false);
+    setPassword("");
+    sessionStorage.removeItem("diary-admin");
     setView("list");
   }
 
-  function deleteEntry(id: string) {
-    setEntries((prev) => {
-      const updated = prev.filter((e) => e.id !== id);
-      if (updated.length === 0) {
-        localStorage.removeItem("diary-entries");
+  async function saveEntry() {
+    if (!content.trim() || saving) return;
+    setSaving(true);
+
+    try {
+      if (editingId) {
+        const res = await fetch("/api/entries", {
+          method: "PUT",
+          headers: authHeaders(),
+          body: JSON.stringify({ id: editingId, title, content, mood }),
+        });
+        if (!res.ok) return;
+      } else {
+        const res = await fetch("/api/entries", {
+          method: "POST",
+          headers: authHeaders(),
+          body: JSON.stringify({ title, content, mood }),
+        });
+        if (!res.ok) return;
       }
-      return updated;
+
+      await fetchEntries();
+      setTitle("");
+      setContent("");
+      setMood("");
+      setEditingId(null);
+      setView("list");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function deleteEntry(id: string) {
+    const res = await fetch(`/api/entries?id=${id}`, {
+      method: "DELETE",
+      headers: authHeaders(),
     });
-    setView("list");
-    setSelectedEntry(null);
+    if (res.ok) {
+      await fetchEntries();
+      setView("list");
+      setSelectedEntry(null);
+    }
   }
 
   function startEdit(entry: DiaryEntry) {
@@ -124,7 +178,6 @@ export default function Home() {
       e.content.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  // Group entries by date
   const grouped = filtered.reduce<Record<string, DiaryEntry[]>>((acc, e) => {
     const key = formatDate(e.createdAt);
     if (!acc[key]) acc[key] = [];
@@ -133,7 +186,7 @@ export default function Home() {
   }, {});
 
   return (
-    <div className="min-h-screen bg-black text-neutral-300">
+    <div className="min-h-screen bg-black text-neutral-300 flex flex-col">
       {/* Header */}
       <header className="border-b border-neutral-900 px-6 py-5">
         <div className="max-w-2xl mx-auto flex items-center justify-between">
@@ -148,7 +201,7 @@ export default function Home() {
             diary
           </button>
 
-          {view === "list" && (
+          {view === "list" && isAdmin && (
             <button
               onClick={() => {
                 setTitle("");
@@ -176,9 +229,10 @@ export default function Home() {
               </button>
               <button
                 onClick={saveEntry}
-                className="text-white hover:opacity-70 transition-opacity text-sm font-mono"
+                disabled={saving}
+                className="text-white hover:opacity-70 transition-opacity text-sm font-mono disabled:opacity-30"
               >
-                save
+                {saving ? "saving..." : "save"}
               </button>
             </div>
           )}
@@ -197,11 +251,17 @@ export default function Home() {
         </div>
       </header>
 
-      <main className="max-w-2xl mx-auto px-6 py-8">
+      <main className="max-w-2xl mx-auto px-6 py-8 flex-1 w-full">
+        {/* Loading */}
+        {loading && (
+          <div className="text-center py-24">
+            <p className="text-neutral-700 font-mono text-sm">loading...</p>
+          </div>
+        )}
+
         {/* ===================== LIST VIEW ===================== */}
-        {view === "list" && (
+        {!loading && view === "list" && (
           <div>
-            {/* Search */}
             {entries.length > 0 && (
               <div className="mb-8">
                 <input
@@ -216,15 +276,17 @@ export default function Home() {
 
             {entries.length === 0 && (
               <div className="text-center py-24">
-                <p className="text-neutral-600 font-mono text-sm mb-6">
-                  nothing here yet
+                <p className="text-neutral-600 font-mono text-sm">
+                  {isAdmin ? "nothing here yet" : "no entries yet"}
                 </p>
-                <button
-                  onClick={() => setView("write")}
-                  className="text-neutral-500 hover:text-white border border-neutral-800 hover:border-neutral-600 px-5 py-2 text-sm font-mono transition-all"
-                >
-                  write your first entry
-                </button>
+                {isAdmin && (
+                  <button
+                    onClick={() => setView("write")}
+                    className="mt-6 text-neutral-500 hover:text-white border border-neutral-800 hover:border-neutral-600 px-5 py-2 text-sm font-mono transition-all"
+                  >
+                    write your first entry
+                  </button>
+                )}
               </div>
             )}
 
@@ -285,9 +347,8 @@ export default function Home() {
               />
             </div>
 
-            {/* Mood selector */}
             <div className="flex gap-2 flex-wrap">
-              {MOODS.filter((m) => m).map((m) => (
+              {MOODS.map((m) => (
                 <button
                   key={m}
                   onClick={() => setMood(mood === m ? "" : m)}
@@ -329,39 +390,109 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="flex gap-4 pt-6 border-t border-neutral-900">
-              <button
-                onClick={() => startEdit(selectedEntry)}
-                className="text-neutral-600 hover:text-white text-sm font-mono transition-colors"
-              >
-                edit
-              </button>
-              <button
-                onClick={() => {
-                  if (confirm("delete this entry?")) {
-                    deleteEntry(selectedEntry.id);
-                  }
-                }}
-                className="text-neutral-700 hover:text-red-400 text-sm font-mono transition-colors"
-              >
-                delete
-              </button>
-            </div>
+            {isAdmin && (
+              <div className="flex gap-4 pt-6 border-t border-neutral-900">
+                <button
+                  onClick={() => startEdit(selectedEntry)}
+                  className="text-neutral-600 hover:text-white text-sm font-mono transition-colors"
+                >
+                  edit
+                </button>
+                <button
+                  onClick={() => {
+                    if (confirm("delete this entry?")) {
+                      deleteEntry(selectedEntry.id);
+                    }
+                  }}
+                  className="text-neutral-700 hover:text-red-400 text-sm font-mono transition-colors"
+                >
+                  delete
+                </button>
+              </div>
+            )}
           </div>
         )}
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-neutral-900 px-6 py-4 mt-auto">
+      <footer className="border-t border-neutral-900 px-6 py-4">
         <div className="max-w-2xl mx-auto flex justify-between items-center">
           <span className="text-neutral-800 text-xs font-mono">
             {entries.length} {entries.length === 1 ? "entry" : "entries"}
           </span>
-          <span className="text-neutral-800 text-xs font-mono">
-            all data stored locally
-          </span>
+          {isAdmin ? (
+            <button
+              onClick={handleLogout}
+              className="text-neutral-800 hover:text-neutral-500 text-xs font-mono transition-colors"
+            >
+              sign out
+            </button>
+          ) : (
+            <button
+              onClick={() => setShowLogin(true)}
+              className="text-neutral-800 hover:text-neutral-500 text-xs font-mono transition-colors"
+            >
+              sign in
+            </button>
+          )}
         </div>
       </footer>
+
+      {/* Login Modal */}
+      {showLogin && (
+        <div
+          className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 px-6"
+          onClick={() => {
+            setShowLogin(false);
+            setLoginInput("");
+            setLoginError("");
+          }}
+        >
+          <div
+            className="border border-neutral-800 bg-neutral-950 p-8 w-full max-w-sm"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="text-neutral-500 text-xs font-mono tracking-widest uppercase mb-6">
+              sign in
+            </p>
+            <input
+              type="password"
+              placeholder="password"
+              value={loginInput}
+              onChange={(e) => {
+                setLoginInput(e.target.value);
+                setLoginError("");
+              }}
+              onKeyDown={(e) => e.key === "Enter" && handleLogin()}
+              autoFocus
+              className="w-full bg-transparent border-b border-neutral-800 pb-2 text-sm font-mono text-neutral-300 placeholder:text-neutral-700 focus:outline-none focus:border-neutral-600 transition-colors mb-4"
+            />
+            {loginError && (
+              <p className="text-red-400/70 text-xs font-mono mb-4">
+                {loginError}
+              </p>
+            )}
+            <div className="flex justify-end gap-4">
+              <button
+                onClick={() => {
+                  setShowLogin(false);
+                  setLoginInput("");
+                  setLoginError("");
+                }}
+                className="text-neutral-600 hover:text-neutral-300 text-sm font-mono transition-colors"
+              >
+                cancel
+              </button>
+              <button
+                onClick={handleLogin}
+                className="text-white hover:opacity-70 text-sm font-mono transition-opacity"
+              >
+                enter
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
