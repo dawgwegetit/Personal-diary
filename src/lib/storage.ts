@@ -41,6 +41,7 @@ export async function saveEntries(entries: DiaryEntry[]): Promise<void> {
   await put(BLOB_KEY, JSON.stringify(entries), {
     access: "public",
     addRandomSuffix: false,
+    allowOverwrite: true,
   });
 }
 
@@ -80,6 +81,7 @@ export async function incrementViews(): Promise<number> {
   await put(VIEWS_BLOB_KEY, JSON.stringify({ count: next }), {
     access: "public",
     addRandomSuffix: false,
+    allowOverwrite: true,
   });
   return next;
 }

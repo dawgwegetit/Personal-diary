@@ -26,6 +26,7 @@ export async function GET() {
     await put("diary/health-check.txt", "ok", {
       access: "public",
       addRandomSuffix: false,
+      allowOverwrite: true,
     });
     checks.blob_write = "ok";
   } catch (e: unknown) {
