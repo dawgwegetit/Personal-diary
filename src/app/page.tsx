@@ -208,7 +208,7 @@ export default function Home() {
               diary
             </button>
             {views !== null && (
-              <span className="text-neutral-700 text-xs font-mono">
+              <span className="text-neutral-500 text-xs font-mono">
                 {views.toLocaleString()} {views === 1 ? "visit" : "visits"}
               </span>
             )}
