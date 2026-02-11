@@ -196,20 +196,24 @@ export default function Home() {
       {/* Header */}
       <header className="border-b border-neutral-900 px-6 py-5">
         <div className="max-w-2xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-4">
+          <div className="flex flex-col">
             <button
               onClick={() => {
                 setView("list");
                 setSelectedEntry(null);
                 setEditingId(null);
               }}
-              className="text-white tracking-widest text-sm uppercase font-mono hover:opacity-70 transition-opacity"
+              className="text-left hover:opacity-80 transition-opacity"
             >
-              diary
+              <span className="text-neutral-500 text-xs font-mono">✦ ♡ ✦</span>
+              <h1 className="text-white tracking-wide text-sm uppercase font-mono">
+                K&D <span className="text-neutral-500">♡</span> Public Dumping Journal
+              </h1>
+              <span className="text-neutral-500 text-xs font-mono">✦ ♡ ✦</span>
             </button>
             {views !== null && (
-              <span className="text-neutral-500 text-xs font-mono">
-                {views.toLocaleString()} {views === 1 ? "visit" : "visits"}
+              <span className="text-neutral-600 text-xs font-mono mt-1">
+                ★ {views.toLocaleString()} {views === 1 ? "visit" : "visits"} ★
               </span>
             )}
           </div>
@@ -289,8 +293,9 @@ export default function Home() {
 
             {entries.length === 0 && (
               <div className="text-center py-24">
+                <p className="text-neutral-700 font-mono text-lg mb-2">♡ ✦ ♡</p>
                 <p className="text-neutral-600 font-mono text-sm">
-                  {isAdmin ? "nothing here yet" : "no entries yet"}
+                  {isAdmin ? "nothing here yet — start dumping" : "no dumps yet — check back soon"}
                 </p>
                 {isAdmin && (
                   <button
@@ -431,7 +436,7 @@ export default function Home() {
       <footer className="border-t border-neutral-900 px-6 py-4">
         <div className="max-w-2xl mx-auto flex justify-between items-center">
           <span className="text-neutral-800 text-xs font-mono">
-            {entries.length} {entries.length === 1 ? "entry" : "entries"}
+            ♡ {entries.length} {entries.length === 1 ? "dump" : "dumps"} ♡
           </span>
           {isAdmin ? (
             <button
