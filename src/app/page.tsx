@@ -41,6 +41,7 @@ export default function Home() {
   const [searchQuery, setSearchQuery] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [views, setViews] = useState<number | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Admin state
@@ -72,6 +73,10 @@ export default function Home() {
 
   useEffect(() => {
     fetchEntries();
+    fetch("/api/views", { method: "POST" })
+      .then((r) => r.json())
+      .then((d) => setViews(d.count))
+      .catch(() => {});
   }, [fetchEntries]);
 
   // Restore admin session
@@ -190,16 +195,23 @@ export default function Home() {
       {/* Header */}
       <header className="border-b border-neutral-900 px-6 py-5">
         <div className="max-w-2xl mx-auto flex items-center justify-between">
-          <button
-            onClick={() => {
-              setView("list");
-              setSelectedEntry(null);
-              setEditingId(null);
-            }}
-            className="text-white tracking-widest text-sm uppercase font-mono hover:opacity-70 transition-opacity"
-          >
-            diary
-          </button>
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => {
+                setView("list");
+                setSelectedEntry(null);
+                setEditingId(null);
+              }}
+              className="text-white tracking-widest text-sm uppercase font-mono hover:opacity-70 transition-opacity"
+            >
+              diary
+            </button>
+            {views !== null && (
+              <span className="text-neutral-700 text-xs font-mono">
+                {views.toLocaleString()} {views === 1 ? "visit" : "visits"}
+              </span>
+            )}
+          </div>
 
           {view === "list" && isAdmin && (
             <button
