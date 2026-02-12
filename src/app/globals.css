@@ -3,12 +3,6 @@
 @theme {
   --font-mono: "Courier New", monospace;
   --font-sans: "Georgia", "Times New Roman", serif;
-  --color-accent: #a78bfa;
-  --color-accent-hover: #c4b5fd;
-  --color-pink: #f472b6;
-  --color-cyan: #22d3ee;
-  --color-amber: #fbbf24;
-  --color-emerald: #34d399;
 }
 
 * {
@@ -24,7 +18,7 @@ body {
 }
 
 ::selection {
-  background: var(--color-accent);
+  background: #a78bfa;
   color: #000;
 }
 
@@ -43,4 +37,44 @@ body {
 /* Textarea */
 textarea:focus {
   outline: none;
+}
+
+/* Gradient text helper */
+.gradient-title {
+  background: linear-gradient(135deg, #a78bfa, #f472b6, #fb923c, #22d3ee);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Glow effects */
+.glow-violet {
+  box-shadow: 0 0 20px rgba(139, 92, 246, 0.3);
+}
+.glow-emerald {
+  box-shadow: 0 0 20px rgba(52, 211, 153, 0.3);
+}
+.glow-pink {
+  box-shadow: 0 0 20px rgba(244, 114, 182, 0.3);
+}
+
+/* Gradient border for entry cards on hover */
+.entry-card {
+  position: relative;
+  transition: all 0.2s;
+}
+.entry-card::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 2px;
+  height: 0;
+  background: linear-gradient(180deg, #a78bfa, #f472b6);
+  border-radius: 2px;
+  transition: height 0.2s;
+}
+.entry-card:hover::before {
+  height: 60%;
 }
