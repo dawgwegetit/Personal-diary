@@ -78,3 +78,51 @@ textarea:focus {
 .entry-card:hover::before {
   height: 60%;
 }
+
+/* Star twinkle animation */
+@keyframes twinkle {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 1; }
+}
+@keyframes twinkle-slow {
+  0%, 100% { opacity: 0.15; }
+  50% { opacity: 0.6; }
+}
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-4px); }
+}
+.star {
+  display: inline-block;
+  animation: twinkle 3s ease-in-out infinite;
+}
+.star-slow {
+  display: inline-block;
+  animation: twinkle-slow 4s ease-in-out infinite;
+}
+.star-float {
+  display: inline-block;
+  animation: float 3s ease-in-out infinite, twinkle 2.5s ease-in-out infinite;
+}
+.star-delay-1 { animation-delay: 0.5s; }
+.star-delay-2 { animation-delay: 1s; }
+.star-delay-3 { animation-delay: 1.5s; }
+.star-delay-4 { animation-delay: 2s; }
+.star-delay-5 { animation-delay: 2.5s; }
+
+/* Subtle glow pulse on header */
+@keyframes glow-pulse {
+  0%, 100% { opacity: 0.03; }
+  50% { opacity: 0.08; }
+}
+.header-glow {
+  position: relative;
+}
+.header-glow::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 100%, rgba(139, 92, 246, 0.15), transparent 70%);
+  animation: glow-pulse 4s ease-in-out infinite;
+  pointer-events: none;
+}
