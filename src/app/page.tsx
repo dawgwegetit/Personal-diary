@@ -162,18 +162,6 @@ export default function Home() {
     }
   }
 
-  async function deleteEntry(id: string) {
-    const res = await fetch(`/api/entries?id=${id}`, {
-      method: "DELETE",
-      headers: authHeaders(),
-    });
-    if (res.ok) {
-      await fetchEntries();
-      setView("list");
-      setSelectedEntry(null);
-    }
-  }
-
   function startEdit(entry: DiaryEntry) {
     setEditingId(entry.id);
     setTitle(entry.title);
@@ -463,16 +451,6 @@ export default function Home() {
                   className="text-cyan-400 hover:text-cyan-300 text-sm font-mono transition-colors"
                 >
                   edit
-                </button>
-                <button
-                  onClick={() => {
-                    if (confirm("delete this entry?")) {
-                      deleteEntry(selectedEntry.id);
-                    }
-                  }}
-                  className="text-neutral-600 hover:text-red-400 text-sm font-mono transition-colors"
-                >
-                  delete
                 </button>
               </div>
             )}
