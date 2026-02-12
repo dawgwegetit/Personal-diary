@@ -24,6 +24,12 @@ function getMood(mood?: string) {
   return MOODS.find((m) => m.label === mood);
 }
 
+function getEntryImageUrl(entry: DiaryEntry): string {
+  const moodStyle = entry.mood ? `, ${entry.mood} mood` : "";
+  const prompt = `dreamy abstract art for diary entry titled "${entry.title}"${moodStyle}, ethereal, soft colors, digital painting, aesthetic, no text`;
+  return `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=800&height=400&seed=${entry.id.replace(/\D/g, "").slice(0, 8)}&nologo=true`;
+}
+
 function formatDate(timestamp: number): string {
   const d = new Date(timestamp);
   const months = [
@@ -61,6 +67,7 @@ export default function Home() {
   const [showLogin, setShowLogin] = useState(false);
   const [loginInput, setLoginInput] = useState("");
   const [loginError, setLoginError] = useState("");
+  const [imageLoaded, setImageLoaded] = useState(false);
 
   const authHeaders = useCallback(() => ({
     "Content-Type": "application/json",
@@ -344,6 +351,7 @@ export default function Home() {
                         key={entry.id}
                         onClick={() => {
                           setSelectedEntry(entry);
+                          setImageLoaded(false);
                           setView("read");
                         }}
                         className="entry-card w-full text-left group py-3 px-5 hover:bg-white/[0.02] transition-colors rounded-lg"
@@ -421,6 +429,26 @@ export default function Home() {
         {/* ===================== READ VIEW ===================== */}
         {view === "read" && selectedEntry && (
           <div>
+            {/* AI Generated Image */}
+            <div className="mb-6 rounded-xl overflow-hidden border border-neutral-800/50 relative">
+              {!imageLoaded && (
+                <div className="w-full h-[200px] bg-neutral-900 flex items-center justify-center">
+                  <span className="text-neutral-700 font-mono text-xs animate-pulse">generating art...</span>
+                </div>
+              )}
+              <img
+                src={getEntryImageUrl(selectedEntry)}
+                alt={`AI art for "${selectedEntry.title}"`}
+                className={`w-full h-[200px] object-cover transition-opacity duration-500 ${imageLoaded ? "opacity-100" : "opacity-0 absolute inset-0"}`}
+                onLoad={() => setImageLoaded(true)}
+                onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = "none";
+                  setImageLoaded(true);
+                }}
+              />
+              <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-[#0a0a0a] to-transparent pointer-events-none" />
+            </div>
+
             <div className="mb-8">
               <div className="flex items-center gap-3 text-xs font-mono tracking-widest uppercase mb-4">
                 <span className="star star-delay-1 text-violet-400/50 text-[10px]">✦</span>
