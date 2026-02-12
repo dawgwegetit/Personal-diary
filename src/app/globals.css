@@ -3,6 +3,12 @@
 @theme {
   --font-mono: "Courier New", monospace;
   --font-sans: "Georgia", "Times New Roman", serif;
+  --color-accent: #a78bfa;
+  --color-accent-hover: #c4b5fd;
+  --color-pink: #f472b6;
+  --color-cyan: #22d3ee;
+  --color-amber: #fbbf24;
+  --color-emerald: #34d399;
 }
 
 * {
@@ -12,13 +18,13 @@
 }
 
 body {
-  background-color: #000;
+  background-color: #0a0a0a;
   color: #e0e0e0;
   font-family: var(--font-sans);
 }
 
 ::selection {
-  background: #fff;
+  background: var(--color-accent);
   color: #000;
 }
 
@@ -27,7 +33,7 @@ body {
   width: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #000;
+  background: #0a0a0a;
 }
 ::-webkit-scrollbar-thumb {
   background: #333;
