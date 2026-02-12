@@ -199,7 +199,7 @@ export default function Home() {
             >
               <h1 className="text-lg uppercase font-mono tracking-wide font-bold gradient-title">
                 <span className="star star-delay-1 text-violet-400/60 text-sm">✦</span>{" "}
-                K&D Public Dumping Journal{" "}
+                D's Public Dumping Journal{" "}
                 <span className="star star-delay-3 text-pink-400/60 text-sm">✦</span>
               </h1>
             </button>
@@ -305,7 +305,7 @@ export default function Home() {
                   <span className="star-float star-delay-2 text-pink-400/30 text-sm mx-3">✦</span>
                   <span className="star-float star-delay-4 text-cyan-400/40 text-xs">★</span>
                 </div>
-                <h2 className="text-4xl font-mono font-bold gradient-title mb-4">K&D</h2>
+                <h2 className="text-4xl font-mono font-bold gradient-title mb-4">D</h2>
                 <p className="text-neutral-600 font-mono text-sm">
                   {isAdmin ? "nothing here yet — start dumping" : "no dumps yet — check back soon"}
                 </p>
@@ -468,7 +468,7 @@ export default function Home() {
           <div className="flex items-center gap-2">
             <span className="star-slow star-delay-1 text-violet-400/30 text-[10px]">✦</span>
             <span className="text-xs font-mono font-bold gradient-title">
-              K&D
+              D
             </span>
             <span className="star-slow star-delay-5 text-pink-400/30 text-[10px]">✦</span>
           </div>
