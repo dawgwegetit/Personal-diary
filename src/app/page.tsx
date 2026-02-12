@@ -11,17 +11,17 @@ interface DiaryEntry {
   createdAt: number;
 }
 
-const MOODS: { label: string; color: string }[] = [
-  { label: "calm", color: "border-cyan-400 text-cyan-400" },
-  { label: "happy", color: "border-amber-400 text-amber-400" },
-  { label: "sad", color: "border-blue-400 text-blue-400" },
-  { label: "angry", color: "border-red-400 text-red-400" },
-  { label: "tired", color: "border-neutral-400 text-neutral-400" },
-  { label: "inspired", color: "border-violet-400 text-violet-400" },
+const MOODS: { label: string; color: string; bg: string }[] = [
+  { label: "calm", color: "border-cyan-400 text-cyan-400", bg: "bg-cyan-400/10" },
+  { label: "happy", color: "border-amber-400 text-amber-400", bg: "bg-amber-400/10" },
+  { label: "sad", color: "border-blue-400 text-blue-400", bg: "bg-blue-400/10" },
+  { label: "angry", color: "border-red-400 text-red-400", bg: "bg-red-400/10" },
+  { label: "tired", color: "border-neutral-400 text-neutral-400", bg: "bg-neutral-400/10" },
+  { label: "inspired", color: "border-violet-400 text-violet-400", bg: "bg-violet-400/10" },
 ];
 
-function moodColor(mood?: string): string {
-  return MOODS.find((m) => m.label === mood)?.color.split(" ")[1] || "text-neutral-500";
+function getMood(mood?: string) {
+  return MOODS.find((m) => m.label === mood);
 }
 
 function formatDate(timestamp: number): string {
@@ -108,9 +108,7 @@ export default function Home() {
     try {
       const res = await fetch("/api/verify", {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${loginInput}`,
-        },
+        headers: { Authorization: `Bearer ${loginInput}` },
       });
       if (res.ok) {
         setPassword(loginInput);
@@ -136,7 +134,6 @@ export default function Home() {
   async function saveEntry() {
     if (!content.trim() || saving) return;
     setSaving(true);
-
     try {
       let res: Response;
       if (editingId) {
@@ -153,7 +150,6 @@ export default function Home() {
         });
       }
       if (!res.ok) return;
-
       const data = await res.json();
       setEntries(data.entries);
       setTitle("");
@@ -202,7 +198,7 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-neutral-300 flex flex-col">
       {/* Header */}
-      <header className="border-b border-neutral-800/50 px-6 py-5">
+      <header className="border-b border-neutral-800/50 px-6 py-5 bg-gradient-to-r from-violet-500/5 via-pink-500/5 to-cyan-500/5">
         <div className="max-w-2xl mx-auto flex items-center justify-between">
           <div className="flex flex-col">
             <button
@@ -213,16 +209,14 @@ export default function Home() {
               }}
               className="text-left hover:opacity-80 transition-opacity"
             >
-              <h1 className="text-sm uppercase font-mono tracking-wide">
-                <span className="text-violet-400 font-bold">K</span>
-                <span className="text-neutral-500">&</span>
-                <span className="text-pink-400 font-bold">D</span>
-                <span className="text-neutral-400 ml-2">Public Dumping Journal</span>
+              <h1 className="text-lg uppercase font-mono tracking-wide font-bold gradient-title">
+                K&D Public Dumping Journal
               </h1>
             </button>
             {views !== null && (
-              <span className="text-neutral-600 text-xs font-mono mt-1">
-                {views.toLocaleString()} {views === 1 ? "visit" : "visits"}
+              <span className="text-xs font-mono mt-1">
+                <span className="text-pink-400">{views.toLocaleString()}</span>
+                <span className="text-neutral-600"> {views === 1 ? "visit" : "visits"}</span>
               </span>
             )}
           </div>
@@ -231,7 +225,7 @@ export default function Home() {
             {view === "list" && !isAdmin && (
               <button
                 onClick={() => setShowLogin(true)}
-                className="bg-violet-500 hover:bg-violet-400 text-white text-xs font-mono px-4 py-1.5 rounded-full transition-colors"
+                className="bg-gradient-to-r from-violet-500 to-pink-500 hover:from-violet-400 hover:to-pink-400 text-white text-xs font-mono font-bold px-5 py-2 rounded-full transition-all glow-violet"
               >
                 sign in
               </button>
@@ -247,13 +241,13 @@ export default function Home() {
                     setEditingId(null);
                     setView("write");
                   }}
-                  className="bg-emerald-500 hover:bg-emerald-400 text-white text-xs font-mono px-4 py-1.5 rounded-full transition-colors"
+                  className="bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 text-white text-xs font-mono font-bold px-5 py-2 rounded-full transition-all glow-emerald"
                 >
                   + new dump
                 </button>
                 <button
                   onClick={handleLogout}
-                  className="text-neutral-600 hover:text-neutral-400 text-xs font-mono transition-colors"
+                  className="text-neutral-600 hover:text-pink-400 text-xs font-mono transition-colors"
                 >
                   sign out
                 </button>
@@ -263,18 +257,15 @@ export default function Home() {
             {view === "write" && (
               <div className="flex gap-3">
                 <button
-                  onClick={() => {
-                    setView("list");
-                    setEditingId(null);
-                  }}
-                  className="text-neutral-500 hover:text-neutral-300 transition-colors text-xs font-mono px-3 py-1.5 rounded-full border border-neutral-800 hover:border-neutral-600"
+                  onClick={() => { setView("list"); setEditingId(null); }}
+                  className="text-neutral-500 hover:text-neutral-300 transition-colors text-xs font-mono px-4 py-2 rounded-full border border-neutral-800 hover:border-neutral-600"
                 >
                   cancel
                 </button>
                 <button
                   onClick={saveEntry}
                   disabled={saving}
-                  className="bg-violet-500 hover:bg-violet-400 disabled:opacity-30 text-white text-xs font-mono px-4 py-1.5 rounded-full transition-colors"
+                  className="bg-gradient-to-r from-violet-500 to-pink-500 hover:from-violet-400 hover:to-pink-400 disabled:opacity-30 text-white text-xs font-mono font-bold px-5 py-2 rounded-full transition-all glow-violet"
                 >
                   {saving ? "saving..." : "save"}
                 </button>
@@ -283,11 +274,8 @@ export default function Home() {
 
             {view === "read" && (
               <button
-                onClick={() => {
-                  setView("list");
-                  setSelectedEntry(null);
-                }}
-                className="text-neutral-500 hover:text-neutral-300 transition-colors text-xs font-mono px-3 py-1.5 rounded-full border border-neutral-800 hover:border-neutral-600"
+                onClick={() => { setView("list"); setSelectedEntry(null); }}
+                className="text-neutral-500 hover:text-neutral-300 transition-colors text-xs font-mono px-4 py-2 rounded-full border border-neutral-800 hover:border-neutral-600"
               >
                 back
               </button>
@@ -300,7 +288,7 @@ export default function Home() {
         {/* Loading */}
         {loading && (
           <div className="text-center py-24">
-            <p className="text-neutral-700 font-mono text-sm">loading...</p>
+            <p className="text-neutral-700 font-mono text-sm animate-pulse">loading...</p>
           </div>
         )}
 
@@ -321,18 +309,14 @@ export default function Home() {
 
             {entries.length === 0 && (
               <div className="text-center py-24">
-                <p className="text-3xl mb-4">
-                  <span className="text-violet-400">K</span>
-                  <span className="text-neutral-600">&</span>
-                  <span className="text-pink-400">D</span>
-                </p>
+                <h2 className="text-4xl font-mono font-bold gradient-title mb-4">K&D</h2>
                 <p className="text-neutral-600 font-mono text-sm">
                   {isAdmin ? "nothing here yet — start dumping" : "no dumps yet — check back soon"}
                 </p>
                 {isAdmin && (
                   <button
                     onClick={() => setView("write")}
-                    className="mt-6 bg-violet-500 hover:bg-violet-400 text-white px-5 py-2 text-sm font-mono rounded-full transition-colors"
+                    className="mt-6 bg-gradient-to-r from-violet-500 to-pink-500 hover:from-violet-400 hover:to-pink-400 text-white px-6 py-2.5 text-sm font-mono font-bold rounded-full transition-all glow-violet"
                   >
                     write your first dump
                   </button>
@@ -342,39 +326,46 @@ export default function Home() {
 
             {Object.entries(grouped).map(([date, dateEntries]) => (
               <div key={date} className="mb-10">
-                <p className="text-violet-400/60 text-xs font-mono tracking-widest uppercase mb-4">
-                  {date}
-                </p>
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="h-px flex-1 bg-gradient-to-r from-violet-500/30 to-transparent" />
+                  <p className="text-violet-400 text-xs font-mono tracking-widest uppercase">
+                    {date}
+                  </p>
+                  <div className="h-px flex-1 bg-gradient-to-l from-pink-500/30 to-transparent" />
+                </div>
                 <div className="space-y-1">
-                  {dateEntries.map((entry) => (
-                    <button
-                      key={entry.id}
-                      onClick={() => {
-                        setSelectedEntry(entry);
-                        setView("read");
-                      }}
-                      className="w-full text-left group py-3 px-4 -mx-4 hover:bg-white/[0.02] transition-colors rounded-lg"
-                    >
-                      <div className="flex items-baseline justify-between gap-4">
-                        <span className="text-neutral-300 group-hover:text-white transition-colors truncate">
-                          {entry.title}
-                        </span>
-                        <div className="flex items-center gap-3 shrink-0">
-                          {entry.mood && (
-                            <span className={`text-xs font-mono ${moodColor(entry.mood)}`}>
-                              {entry.mood}
-                            </span>
-                          )}
-                          <span className="text-neutral-700 text-xs font-mono">
-                            {formatTime(entry.createdAt)}
+                  {dateEntries.map((entry) => {
+                    const m = getMood(entry.mood);
+                    return (
+                      <button
+                        key={entry.id}
+                        onClick={() => {
+                          setSelectedEntry(entry);
+                          setView("read");
+                        }}
+                        className="entry-card w-full text-left group py-3 px-5 hover:bg-white/[0.02] transition-colors rounded-lg"
+                      >
+                        <div className="flex items-baseline justify-between gap-4">
+                          <span className="text-neutral-300 group-hover:text-white transition-colors truncate">
+                            {entry.title}
                           </span>
+                          <div className="flex items-center gap-3 shrink-0">
+                            {m && (
+                              <span className={`text-xs font-mono px-2 py-0.5 rounded-full ${m.bg} ${m.color.split(" ")[1]}`}>
+                                {entry.mood}
+                              </span>
+                            )}
+                            <span className="text-neutral-700 text-xs font-mono">
+                              {formatTime(entry.createdAt)}
+                            </span>
+                          </div>
                         </div>
-                      </div>
-                      <p className="text-neutral-600 text-sm mt-1 line-clamp-1">
-                        {entry.content}
-                      </p>
-                    </button>
-                  ))}
+                        <p className="text-neutral-600 text-sm mt-1 line-clamp-1">
+                          {entry.content}
+                        </p>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             ))}
@@ -385,8 +376,8 @@ export default function Home() {
         {view === "write" && (
           <div className="space-y-6">
             <div>
-              <p className="text-violet-400/60 text-xs font-mono tracking-widest uppercase mb-4">
-                {editingId ? "editing" : formatDate(Date.now())}
+              <p className="text-xs font-mono tracking-widest uppercase mb-4">
+                <span className="text-violet-400">{editingId ? "editing" : formatDate(Date.now())}</span>
               </p>
               <input
                 type="text"
@@ -404,7 +395,7 @@ export default function Home() {
                   onClick={() => setMood(mood === m.label ? "" : m.label)}
                   className={`text-xs font-mono px-3 py-1 border rounded-full transition-all ${
                     mood === m.label
-                      ? m.color
+                      ? `${m.color} ${m.bg}`
                       : "border-neutral-800 text-neutral-600 hover:border-neutral-600 hover:text-neutral-400"
                   }`}
                 >
@@ -427,23 +418,19 @@ export default function Home() {
         {view === "read" && selectedEntry && (
           <div>
             <div className="mb-8">
-              <p className="text-xs font-mono tracking-widest uppercase mb-3">
-                <span className="text-violet-400/60">
-                  {formatDate(selectedEntry.createdAt)}
-                </span>
-                <span className="text-neutral-700"> / </span>
-                <span className="text-neutral-600">
-                  {formatTime(selectedEntry.createdAt)}
-                </span>
+              <div className="flex items-center gap-3 text-xs font-mono tracking-widest uppercase mb-4">
+                <span className="text-violet-400">{formatDate(selectedEntry.createdAt)}</span>
+                <span className="text-neutral-800">/</span>
+                <span className="text-pink-400">{formatTime(selectedEntry.createdAt)}</span>
                 {selectedEntry.mood && (
                   <>
-                    <span className="text-neutral-700"> / </span>
-                    <span className={moodColor(selectedEntry.mood)}>
+                    <span className="text-neutral-800">/</span>
+                    <span className={`px-2 py-0.5 rounded-full ${getMood(selectedEntry.mood)?.bg || ""} ${getMood(selectedEntry.mood)?.color.split(" ")[1] || "text-neutral-500"}`}>
                       {selectedEntry.mood}
                     </span>
                   </>
                 )}
-              </p>
+              </div>
               <h1 className="text-white text-2xl mb-6">
                 {selectedEntry.title}
               </h1>
@@ -456,7 +443,7 @@ export default function Home() {
               <div className="flex gap-3 pt-6 border-t border-neutral-800/50">
                 <button
                   onClick={() => startEdit(selectedEntry)}
-                  className="text-violet-400 hover:text-violet-300 text-sm font-mono transition-colors"
+                  className="text-cyan-400 hover:text-cyan-300 text-sm font-mono transition-colors"
                 >
                   edit
                 </button>
@@ -477,15 +464,13 @@ export default function Home() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-neutral-800/50 px-6 py-4">
+      <footer className="border-t border-neutral-800/50 px-6 py-4 bg-gradient-to-r from-violet-500/5 via-transparent to-pink-500/5">
         <div className="max-w-2xl mx-auto flex justify-between items-center">
           <span className="text-neutral-700 text-xs font-mono">
-            {entries.length} {entries.length === 1 ? "dump" : "dumps"}
+            <span className="text-amber-400">{entries.length}</span> {entries.length === 1 ? "dump" : "dumps"}
           </span>
-          <span className="text-neutral-800 text-xs font-mono">
-            <span className="text-violet-400/40">K</span>
-            <span className="text-neutral-700">&</span>
-            <span className="text-pink-400/40">D</span>
+          <span className="text-xs font-mono font-bold gradient-title">
+            K&D
           </span>
         </div>
       </footer>
@@ -494,50 +479,38 @@ export default function Home() {
       {showLogin && (
         <div
           className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 px-6"
-          onClick={() => {
-            setShowLogin(false);
-            setLoginInput("");
-            setLoginError("");
-          }}
+          onClick={() => { setShowLogin(false); setLoginInput(""); setLoginError(""); }}
         >
           <div
-            className="border border-neutral-800 bg-[#111] rounded-xl p-8 w-full max-w-sm"
+            className="border border-neutral-800 bg-[#111] rounded-2xl p-8 w-full max-w-sm relative overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
-            <p className="text-violet-400 text-xs font-mono tracking-widest uppercase mb-6">
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-violet-500 via-pink-500 to-cyan-500" />
+            <p className="text-xs font-mono tracking-widest uppercase mb-6 gradient-title font-bold">
               sign in
             </p>
             <input
               type="password"
               placeholder="password"
               value={loginInput}
-              onChange={(e) => {
-                setLoginInput(e.target.value);
-                setLoginError("");
-              }}
+              onChange={(e) => { setLoginInput(e.target.value); setLoginError(""); }}
               onKeyDown={(e) => e.key === "Enter" && handleLogin()}
               autoFocus
               className="w-full bg-transparent border-b border-neutral-800 pb-2 text-sm font-mono text-neutral-300 placeholder:text-neutral-700 focus:outline-none focus:border-violet-500/50 transition-colors mb-4"
             />
             {loginError && (
-              <p className="text-red-400 text-xs font-mono mb-4">
-                {loginError}
-              </p>
+              <p className="text-red-400 text-xs font-mono mb-4">{loginError}</p>
             )}
             <div className="flex justify-end gap-3">
               <button
-                onClick={() => {
-                  setShowLogin(false);
-                  setLoginInput("");
-                  setLoginError("");
-                }}
-                className="text-neutral-500 hover:text-neutral-300 text-sm font-mono px-3 py-1.5 rounded-full border border-neutral-800 hover:border-neutral-600 transition-colors"
+                onClick={() => { setShowLogin(false); setLoginInput(""); setLoginError(""); }}
+                className="text-neutral-500 hover:text-neutral-300 text-sm font-mono px-4 py-1.5 rounded-full border border-neutral-800 hover:border-neutral-600 transition-colors"
               >
                 cancel
               </button>
               <button
                 onClick={handleLogin}
-                className="bg-violet-500 hover:bg-violet-400 text-white text-sm font-mono px-5 py-1.5 rounded-full transition-colors"
+                className="bg-gradient-to-r from-violet-500 to-pink-500 hover:from-violet-400 hover:to-pink-400 text-white text-sm font-mono font-bold px-6 py-1.5 rounded-full transition-all glow-violet"
               >
                 enter
               </button>
