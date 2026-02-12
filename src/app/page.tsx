@@ -198,7 +198,7 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-neutral-300 flex flex-col">
       {/* Header */}
-      <header className="border-b border-neutral-800/50 px-6 py-5 bg-gradient-to-r from-violet-500/5 via-pink-500/5 to-cyan-500/5">
+      <header className="border-b border-neutral-800/50 px-6 py-5 bg-gradient-to-r from-violet-500/5 via-pink-500/5 to-cyan-500/5 header-glow">
         <div className="max-w-2xl mx-auto flex items-center justify-between">
           <div className="flex flex-col">
             <button
@@ -210,11 +210,14 @@ export default function Home() {
               className="text-left hover:opacity-80 transition-opacity"
             >
               <h1 className="text-lg uppercase font-mono tracking-wide font-bold gradient-title">
-                K&D Public Dumping Journal
+                <span className="star star-delay-1 text-violet-400/60 text-sm">✦</span>{" "}
+                K&D Public Dumping Journal{" "}
+                <span className="star star-delay-3 text-pink-400/60 text-sm">✦</span>
               </h1>
             </button>
             {views !== null && (
               <span className="text-xs font-mono mt-1">
+                <span className="star-slow star-delay-2 text-amber-400/40 text-[10px]">✧</span>{" "}
                 <span className="text-pink-400">{views.toLocaleString()}</span>
                 <span className="text-neutral-600"> {views === 1 ? "visit" : "visits"}</span>
               </span>
@@ -309,14 +312,24 @@ export default function Home() {
 
             {entries.length === 0 && (
               <div className="text-center py-24">
+                <div className="mb-6">
+                  <span className="star-float text-violet-400/40 text-lg">✧</span>
+                  <span className="star-float star-delay-2 text-pink-400/30 text-sm mx-3">✦</span>
+                  <span className="star-float star-delay-4 text-cyan-400/40 text-xs">★</span>
+                </div>
                 <h2 className="text-4xl font-mono font-bold gradient-title mb-4">K&D</h2>
                 <p className="text-neutral-600 font-mono text-sm">
                   {isAdmin ? "nothing here yet — start dumping" : "no dumps yet — check back soon"}
                 </p>
+                <div className="mt-4 mb-2">
+                  <span className="star-float star-delay-5 text-amber-400/30 text-xs">✦</span>
+                  <span className="star-float star-delay-1 text-violet-400/20 text-sm mx-4">✧</span>
+                  <span className="star-float star-delay-3 text-pink-400/30 text-xs">✦</span>
+                </div>
                 {isAdmin && (
                   <button
                     onClick={() => setView("write")}
-                    className="mt-6 bg-gradient-to-r from-violet-500 to-pink-500 hover:from-violet-400 hover:to-pink-400 text-white px-6 py-2.5 text-sm font-mono font-bold rounded-full transition-all glow-violet"
+                    className="mt-4 bg-gradient-to-r from-violet-500 to-pink-500 hover:from-violet-400 hover:to-pink-400 text-white px-6 py-2.5 text-sm font-mono font-bold rounded-full transition-all glow-violet"
                   >
                     write your first dump
                   </button>
@@ -328,9 +341,11 @@ export default function Home() {
               <div key={date} className="mb-10">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="h-px flex-1 bg-gradient-to-r from-violet-500/30 to-transparent" />
+                  <span className="star star-delay-2 text-violet-400/40 text-[10px]">✦</span>
                   <p className="text-violet-400 text-xs font-mono tracking-widest uppercase">
                     {date}
                   </p>
+                  <span className="star star-delay-4 text-pink-400/40 text-[10px]">✦</span>
                   <div className="h-px flex-1 bg-gradient-to-l from-pink-500/30 to-transparent" />
                 </div>
                 <div className="space-y-1">
@@ -377,6 +392,7 @@ export default function Home() {
           <div className="space-y-6">
             <div>
               <p className="text-xs font-mono tracking-widest uppercase mb-4">
+                <span className="star star-delay-2 text-violet-400/50 text-[10px]">✦</span>{" "}
                 <span className="text-violet-400">{editingId ? "editing" : formatDate(Date.now())}</span>
               </p>
               <input
@@ -419,6 +435,7 @@ export default function Home() {
           <div>
             <div className="mb-8">
               <div className="flex items-center gap-3 text-xs font-mono tracking-widest uppercase mb-4">
+                <span className="star star-delay-1 text-violet-400/50 text-[10px]">✦</span>
                 <span className="text-violet-400">{formatDate(selectedEntry.createdAt)}</span>
                 <span className="text-neutral-800">/</span>
                 <span className="text-pink-400">{formatTime(selectedEntry.createdAt)}</span>
@@ -464,14 +481,19 @@ export default function Home() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-neutral-800/50 px-6 py-4 bg-gradient-to-r from-violet-500/5 via-transparent to-pink-500/5">
+      <footer className="border-t border-neutral-800/50 px-6 py-5 bg-gradient-to-r from-violet-500/5 via-transparent to-pink-500/5">
         <div className="max-w-2xl mx-auto flex justify-between items-center">
           <span className="text-neutral-700 text-xs font-mono">
+            <span className="star-slow star-delay-3 text-amber-400/30 text-[10px] mr-1">✧</span>
             <span className="text-amber-400">{entries.length}</span> {entries.length === 1 ? "dump" : "dumps"}
           </span>
-          <span className="text-xs font-mono font-bold gradient-title">
-            K&D
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="star-slow star-delay-1 text-violet-400/30 text-[10px]">✦</span>
+            <span className="text-xs font-mono font-bold gradient-title">
+              K&D
+            </span>
+            <span className="star-slow star-delay-5 text-pink-400/30 text-[10px]">✦</span>
+          </div>
         </div>
       </footer>
 
@@ -487,7 +509,7 @@ export default function Home() {
           >
             <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-violet-500 via-pink-500 to-cyan-500" />
             <p className="text-xs font-mono tracking-widest uppercase mb-6 gradient-title font-bold">
-              sign in
+              <span className="star star-delay-1 text-violet-400/50">✦</span> sign in <span className="star star-delay-3 text-pink-400/50">✦</span>
             </p>
             <input
               type="password"
