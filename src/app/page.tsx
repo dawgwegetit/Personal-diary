@@ -8,6 +8,8 @@ interface DiaryEntry {
   title: string;
   content: string;
   mood?: string;
+  section: string;
+  isPrivate: boolean;
   createdAt: number;
 }
 
@@ -20,14 +22,23 @@ const MOODS: { label: string; color: string; bg: string }[] = [
   { label: "inspired", color: "border-violet-400 text-violet-400", bg: "bg-violet-400/10" },
 ];
 
+const SECTIONS: { label: string; color: string; bg: string }[] = [
+  { label: "personal", color: "border-violet-400 text-violet-400", bg: "bg-violet-400/10" },
+  { label: "public", color: "border-emerald-400 text-emerald-400", bg: "bg-emerald-400/10" },
+  { label: "work", color: "border-amber-400 text-amber-400", bg: "bg-amber-400/10" },
+];
+
 function getMood(mood?: string) {
   return MOODS.find((m) => m.label === mood);
 }
 
+function getSection(section?: string) {
+  return SECTIONS.find((s) => s.label === section);
+}
+
 function getEntryImageUrl(entry: DiaryEntry): string {
-  const moodStyle = entry.mood ? `, ${entry.mood} mood` : "";
-  const prompt = `dreamy abstract art for diary entry titled "${entry.title}"${moodStyle}, ethereal, soft colors, digital painting, aesthetic, no text`;
-  return `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=800&height=400&seed=${entry.id.replace(/\D/g, "").slice(0, 8)}&nologo=true`;
+  const seed = entry.id.replace(/\D/g, "").slice(0, 8) || "0";
+  return `https://picsum.photos/seed/${seed}/800/400`;
 }
 
 function formatDate(timestamp: number): string {
@@ -55,6 +66,8 @@ export default function Home() {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [mood, setMood] = useState("");
+  const [section, setSection] = useState("personal");
+  const [isPrivate, setIsPrivate] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -76,7 +89,11 @@ export default function Home() {
 
   const fetchEntries = useCallback(async () => {
     try {
-      const res = await fetch("/api/entries");
+      const headers: Record<string, string> = {};
+      if (password) {
+        headers.Authorization = `Bearer ${password}`;
+      }
+      const res = await fetch("/api/entries", { headers });
       if (res.ok) {
         const data = await res.json();
         setEntries(data);
@@ -86,7 +103,7 @@ export default function Home() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [password]);
 
   useEffect(() => {
     fetchEntries();
@@ -147,13 +164,13 @@ export default function Home() {
         res = await fetch("/api/entries", {
           method: "PUT",
           headers: authHeaders(),
-          body: JSON.stringify({ id: editingId, title, content, mood }),
+          body: JSON.stringify({ id: editingId, title, content, mood, section, isPrivate }),
         });
       } else {
         res = await fetch("/api/entries", {
           method: "POST",
           headers: authHeaders(),
-          body: JSON.stringify({ title, content, mood }),
+          body: JSON.stringify({ title, content, mood, section, isPrivate }),
         });
       }
       if (!res.ok) return;
@@ -162,6 +179,8 @@ export default function Home() {
       setTitle("");
       setContent("");
       setMood("");
+      setSection("personal");
+      setIsPrivate(false);
       setEditingId(null);
       setView("list");
     } finally {
@@ -174,6 +193,8 @@ export default function Home() {
     setTitle(entry.title);
     setContent(entry.content);
     setMood(entry.mood || "");
+    setSection(entry.section || "personal");
+    setIsPrivate(entry.isPrivate || false);
     setView("write");
   }
 
@@ -236,6 +257,8 @@ export default function Home() {
                     setTitle("");
                     setContent("");
                     setMood("");
+                    setSection("personal");
+                    setIsPrivate(false);
                     setEditingId(null);
                     setView("write");
                   }}
@@ -346,6 +369,7 @@ export default function Home() {
                 <div className="space-y-1">
                   {dateEntries.map((entry) => {
                     const m = getMood(entry.mood);
+                    const s = getSection(entry.section);
                     return (
                       <button
                         key={entry.id}
@@ -357,10 +381,20 @@ export default function Home() {
                         className="entry-card w-full text-left group py-3 px-5 hover:bg-white/[0.02] transition-colors rounded-lg"
                       >
                         <div className="flex items-baseline justify-between gap-4">
-                          <span className="text-neutral-300 group-hover:text-white transition-colors truncate">
-                            {entry.title}
-                          </span>
+                          <div className="flex items-center gap-2 truncate">
+                            {entry.isPrivate && (
+                              <span className="text-pink-400/60 text-xs shrink-0" title="private">&#128274;</span>
+                            )}
+                            <span className="text-neutral-300 group-hover:text-white transition-colors truncate">
+                              {entry.title}
+                            </span>
+                          </div>
                           <div className="flex items-center gap-3 shrink-0">
+                            {s && (
+                              <span className={`text-xs font-mono px-2 py-0.5 rounded-full ${s.bg} ${s.color.split(" ")[1]}`}>
+                                {entry.section}
+                              </span>
+                            )}
                             {m && (
                               <span className={`text-xs font-mono px-2 py-0.5 rounded-full ${m.bg} ${m.color.split(" ")[1]}`}>
                                 {entry.mood}
@@ -400,6 +434,41 @@ export default function Home() {
               />
             </div>
 
+            {/* Section selector */}
+            <div>
+              <p className="text-xs font-mono tracking-widest uppercase text-neutral-600 mb-2">section</p>
+              <div className="flex gap-2 flex-wrap">
+                {SECTIONS.map((s) => (
+                  <button
+                    key={s.label}
+                    onClick={() => setSection(s.label)}
+                    className={`text-xs font-mono px-3 py-1 border rounded-full transition-all ${
+                      section === s.label
+                        ? `${s.color} ${s.bg}`
+                        : "border-neutral-800 text-neutral-600 hover:border-neutral-600 hover:text-neutral-400"
+                    }`}
+                  >
+                    {s.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Privacy toggle */}
+            <div>
+              <button
+                onClick={() => setIsPrivate(!isPrivate)}
+                className={`text-xs font-mono px-3 py-1 border rounded-full transition-all ${
+                  isPrivate
+                    ? "border-pink-400 text-pink-400 bg-pink-400/10"
+                    : "border-neutral-800 text-neutral-600 hover:border-neutral-600 hover:text-neutral-400"
+                }`}
+              >
+                {isPrivate ? "private — hidden from visitors" : "public — visible to everyone"}
+              </button>
+            </div>
+
+            {/* Mood selector */}
             <div className="flex gap-2 flex-wrap">
               {MOODS.map((m) => (
                 <button
@@ -450,16 +519,32 @@ export default function Home() {
             </div>
 
             <div className="mb-8">
-              <div className="flex items-center gap-3 text-xs font-mono tracking-widest uppercase mb-4">
+              <div className="flex items-center gap-3 text-xs font-mono tracking-widest uppercase mb-4 flex-wrap">
                 <span className="star star-delay-1 text-violet-400/50 text-[10px]">✦</span>
                 <span className="text-violet-400">{formatDate(selectedEntry.createdAt)}</span>
                 <span className="text-neutral-800">/</span>
                 <span className="text-pink-400">{formatTime(selectedEntry.createdAt)}</span>
+                {selectedEntry.section && (
+                  <>
+                    <span className="text-neutral-800">/</span>
+                    <span className={`px-2 py-0.5 rounded-full ${getSection(selectedEntry.section)?.bg || "bg-neutral-400/10"} ${getSection(selectedEntry.section)?.color.split(" ")[1] || "text-neutral-500"}`}>
+                      {selectedEntry.section}
+                    </span>
+                  </>
+                )}
                 {selectedEntry.mood && (
                   <>
                     <span className="text-neutral-800">/</span>
                     <span className={`px-2 py-0.5 rounded-full ${getMood(selectedEntry.mood)?.bg || ""} ${getMood(selectedEntry.mood)?.color.split(" ")[1] || "text-neutral-500"}`}>
                       {selectedEntry.mood}
+                    </span>
+                  </>
+                )}
+                {selectedEntry.isPrivate && (
+                  <>
+                    <span className="text-neutral-800">/</span>
+                    <span className="px-2 py-0.5 rounded-full bg-pink-400/10 text-pink-400">
+                      private
                     </span>
                   </>
                 )}

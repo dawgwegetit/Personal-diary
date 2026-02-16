@@ -4,5 +4,7 @@ export interface DiaryEntry {
   title: string;
   content: string;
   mood?: string;
+  section: string;
+  isPrivate: boolean;
   createdAt: number;
 }

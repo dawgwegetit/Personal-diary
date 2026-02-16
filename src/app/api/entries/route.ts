@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server";
-import { getEntries, saveEntries } from "@/lib/storage";
+import { getEntries, createEntry, updateEntry, deleteEntry } from "@/lib/storage";
 import { checkAuth } from "@/lib/auth";
 import { DiaryEntry } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
-  const entries = await getEntries();
+export async function GET(request: Request) {
+  const isAuthed = checkAuth(request);
+  const entries = await getEntries(isAuthed);
   return NextResponse.json(entries);
 }
 
@@ -22,12 +23,13 @@ export async function POST(request: Request) {
     title: body.title?.trim() || "untitled",
     content: body.content || "",
     mood: body.mood || undefined,
+    section: body.section || "personal",
+    isPrivate: !!body.isPrivate,
     createdAt: Date.now(),
   };
 
-  const entries = await getEntries();
-  entries.unshift(entry);
-  await saveEntries(entries);
+  await createEntry(entry);
+  const entries = await getEntries(true);
 
   return NextResponse.json({ entry, entries }, { status: 201 });
 }
@@ -42,21 +44,20 @@ export async function PUT(request: Request) {
     return NextResponse.json({ error: "missing id" }, { status: 400 });
   }
 
-  const entries = await getEntries();
-  const index = entries.findIndex((e) => e.id === body.id);
-  if (index === -1) {
+  const updated = await updateEntry(body.id, {
+    title: body.title?.trim(),
+    content: body.content,
+    mood: body.mood !== undefined ? body.mood || undefined : undefined,
+    section: body.section,
+    isPrivate: body.isPrivate,
+  });
+
+  if (!updated) {
     return NextResponse.json({ error: "not found" }, { status: 404 });
   }
 
-  entries[index] = {
-    ...entries[index],
-    title: body.title?.trim() || entries[index].title,
-    content: body.content ?? entries[index].content,
-    mood: body.mood !== undefined ? body.mood || undefined : entries[index].mood,
-  };
-
-  await saveEntries(entries);
-  return NextResponse.json({ entry: entries[index], entries });
+  const entries = await getEntries(true);
+  return NextResponse.json({ entry: updated, entries });
 }
 
 export async function DELETE(request: Request) {
@@ -70,12 +71,10 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ error: "missing id" }, { status: 400 });
   }
 
-  const entries = await getEntries();
-  const filtered = entries.filter((e) => e.id !== id);
-  if (filtered.length === entries.length) {
+  const deleted = await deleteEntry(id);
+  if (!deleted) {
     return NextResponse.json({ error: "not found" }, { status: 404 });
   }
 
-  await saveEntries(filtered);
   return NextResponse.json({ ok: true });
 }
