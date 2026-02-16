@@ -71,6 +71,7 @@ export default function Home() {
   const [searchQuery, setSearchQuery] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
   const [views, setViews] = useState<number | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -158,6 +159,7 @@ export default function Home() {
   async function saveEntry() {
     if (!content.trim() || saving) return;
     setSaving(true);
+    setSaveError("");
     try {
       let res: Response;
       if (editingId) {
@@ -173,7 +175,11 @@ export default function Home() {
           body: JSON.stringify({ title, content, mood, section, isPrivate }),
         });
       }
-      if (!res.ok) return;
+      if (!res.ok) {
+        const err = await res.json().catch(() => null);
+        setSaveError(err?.error || `save failed (${res.status})`);
+        return;
+      }
       const data = await res.json();
       setEntries(data.entries);
       setTitle("");
@@ -183,6 +189,8 @@ export default function Home() {
       setIsPrivate(false);
       setEditingId(null);
       setView("list");
+    } catch {
+      setSaveError("network error — check your connection");
     } finally {
       setSaving(false);
     }
@@ -276,21 +284,26 @@ export default function Home() {
             )}
 
             {view === "write" && (
-              <div className="flex gap-3">
-                <button
-                  onClick={() => { setView("list"); setEditingId(null); }}
-                  className="text-neutral-500 hover:text-neutral-300 transition-colors text-xs font-mono px-4 py-2 rounded-full border border-neutral-800 hover:border-neutral-600"
-                >
-                  cancel
-                </button>
-                <button
-                  onClick={saveEntry}
-                  disabled={saving}
-                  className="bg-gradient-to-r from-violet-500 to-pink-500 hover:from-violet-400 hover:to-pink-400 disabled:opacity-30 text-white text-xs font-mono font-bold px-5 py-2 rounded-full transition-all glow-violet"
-                >
-                  {saving ? "saving..." : "save"}
-                </button>
-              </div>
+              <>
+                <div className="flex gap-3 items-center">
+                  <button
+                    onClick={() => { setView("list"); setEditingId(null); }}
+                    className="text-neutral-500 hover:text-neutral-300 transition-colors text-xs font-mono px-4 py-2 rounded-full border border-neutral-800 hover:border-neutral-600"
+                  >
+                    cancel
+                  </button>
+                  <button
+                    onClick={saveEntry}
+                    disabled={saving}
+                    className="bg-gradient-to-r from-violet-500 to-pink-500 hover:from-violet-400 hover:to-pink-400 disabled:opacity-30 text-white text-xs font-mono font-bold px-5 py-2 rounded-full transition-all glow-violet"
+                  >
+                    {saving ? "saving..." : "save"}
+                  </button>
+                  {saveError && (
+                    <span className="text-red-400 text-xs font-mono">{saveError}</span>
+                  )}
+                </div>
+              </>
             )}
 
             {view === "read" && (

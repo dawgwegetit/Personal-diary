@@ -6,9 +6,17 @@ import { DiaryEntry } from "@/lib/types";
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
-  const isAuthed = checkAuth(request);
-  const entries = await getEntries(isAuthed);
-  return NextResponse.json(entries);
+  try {
+    const isAuthed = checkAuth(request);
+    const entries = await getEntries(isAuthed);
+    return NextResponse.json(entries);
+  } catch (e: unknown) {
+    console.error("GET /api/entries error:", e);
+    return NextResponse.json(
+      { error: e instanceof Error ? e.message : "failed to load entries" },
+      { status: 500 }
+    );
+  }
 }
 
 export async function POST(request: Request) {
@@ -16,22 +24,30 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
-  const body = await request.json();
-  const entry: DiaryEntry = {
-    id: crypto.randomUUID(),
-    date: new Date().toISOString().split("T")[0],
-    title: body.title?.trim() || "untitled",
-    content: body.content || "",
-    mood: body.mood || undefined,
-    section: body.section || "personal",
-    isPrivate: !!body.isPrivate,
-    createdAt: Date.now(),
-  };
+  try {
+    const body = await request.json();
+    const entry: DiaryEntry = {
+      id: crypto.randomUUID(),
+      date: new Date().toISOString().split("T")[0],
+      title: body.title?.trim() || "untitled",
+      content: body.content || "",
+      mood: body.mood || undefined,
+      section: body.section || "personal",
+      isPrivate: !!body.isPrivate,
+      createdAt: Date.now(),
+    };
 
-  await createEntry(entry);
-  const entries = await getEntries(true);
+    await createEntry(entry);
+    const entries = await getEntries(true);
 
-  return NextResponse.json({ entry, entries }, { status: 201 });
+    return NextResponse.json({ entry, entries }, { status: 201 });
+  } catch (e: unknown) {
+    console.error("POST /api/entries error:", e);
+    return NextResponse.json(
+      { error: e instanceof Error ? e.message : "failed to create entry" },
+      { status: 500 }
+    );
+  }
 }
 
 export async function PUT(request: Request) {
@@ -39,25 +55,33 @@ export async function PUT(request: Request) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
-  const body = await request.json();
-  if (!body.id) {
-    return NextResponse.json({ error: "missing id" }, { status: 400 });
+  try {
+    const body = await request.json();
+    if (!body.id) {
+      return NextResponse.json({ error: "missing id" }, { status: 400 });
+    }
+
+    const updated = await updateEntry(body.id, {
+      title: body.title?.trim(),
+      content: body.content,
+      mood: body.mood !== undefined ? body.mood || undefined : undefined,
+      section: body.section,
+      isPrivate: body.isPrivate,
+    });
+
+    if (!updated) {
+      return NextResponse.json({ error: "not found" }, { status: 404 });
+    }
+
+    const entries = await getEntries(true);
+    return NextResponse.json({ entry: updated, entries });
+  } catch (e: unknown) {
+    console.error("PUT /api/entries error:", e);
+    return NextResponse.json(
+      { error: e instanceof Error ? e.message : "failed to update entry" },
+      { status: 500 }
+    );
   }
-
-  const updated = await updateEntry(body.id, {
-    title: body.title?.trim(),
-    content: body.content,
-    mood: body.mood !== undefined ? body.mood || undefined : undefined,
-    section: body.section,
-    isPrivate: body.isPrivate,
-  });
-
-  if (!updated) {
-    return NextResponse.json({ error: "not found" }, { status: 404 });
-  }
-
-  const entries = await getEntries(true);
-  return NextResponse.json({ entry: updated, entries });
 }
 
 export async function DELETE(request: Request) {
@@ -65,16 +89,24 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
-  const { searchParams } = new URL(request.url);
-  const id = searchParams.get("id");
-  if (!id) {
-    return NextResponse.json({ error: "missing id" }, { status: 400 });
-  }
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get("id");
+    if (!id) {
+      return NextResponse.json({ error: "missing id" }, { status: 400 });
+    }
 
-  const deleted = await deleteEntry(id);
-  if (!deleted) {
-    return NextResponse.json({ error: "not found" }, { status: 404 });
-  }
+    const deleted = await deleteEntry(id);
+    if (!deleted) {
+      return NextResponse.json({ error: "not found" }, { status: 404 });
+    }
 
-  return NextResponse.json({ ok: true });
+    return NextResponse.json({ ok: true });
+  } catch (e: unknown) {
+    console.error("DELETE /api/entries error:", e);
+    return NextResponse.json(
+      { error: e instanceof Error ? e.message : "failed to delete entry" },
+      { status: 500 }
+    );
+  }
 }
