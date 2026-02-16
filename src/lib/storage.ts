@@ -25,8 +25,13 @@ export async function getEntries(): Promise<DiaryEntry[]> {
     const res = await fetch(`${blobs[0].url}?_=${Date.now()}`, {
       cache: "no-store",
     });
+    if (!res.ok) {
+      console.error(`[storage] blob fetch failed: ${res.status} ${res.statusText}`);
+      return [];
+    }
     return await res.json();
-  } catch {
+  } catch (e) {
+    console.error("[storage] getEntries error:", e);
     return [];
   }
 }
