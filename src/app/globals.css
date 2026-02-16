@@ -12,13 +12,13 @@
 }
 
 body {
-  background-color: #000;
+  background-color: #0a0a0a;
   color: #e0e0e0;
   font-family: var(--font-sans);
 }
 
 ::selection {
-  background: #fff;
+  background: #a78bfa;
   color: #000;
 }
 
@@ -27,7 +27,7 @@ body {
   width: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #000;
+  background: #0a0a0a;
 }
 ::-webkit-scrollbar-thumb {
   background: #333;
@@ -37,4 +37,92 @@ body {
 /* Textarea */
 textarea:focus {
   outline: none;
+}
+
+/* Gradient text helper */
+.gradient-title {
+  background: linear-gradient(135deg, #a78bfa, #f472b6, #fb923c, #22d3ee);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Glow effects */
+.glow-violet {
+  box-shadow: 0 0 20px rgba(139, 92, 246, 0.3);
+}
+.glow-emerald {
+  box-shadow: 0 0 20px rgba(52, 211, 153, 0.3);
+}
+.glow-pink {
+  box-shadow: 0 0 20px rgba(244, 114, 182, 0.3);
+}
+
+/* Gradient border for entry cards on hover */
+.entry-card {
+  position: relative;
+  transition: all 0.2s;
+}
+.entry-card::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 2px;
+  height: 0;
+  background: linear-gradient(180deg, #a78bfa, #f472b6);
+  border-radius: 2px;
+  transition: height 0.2s;
+}
+.entry-card:hover::before {
+  height: 60%;
+}
+
+/* Star twinkle animation */
+@keyframes twinkle {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 1; }
+}
+@keyframes twinkle-slow {
+  0%, 100% { opacity: 0.15; }
+  50% { opacity: 0.6; }
+}
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-4px); }
+}
+.star {
+  display: inline-block;
+  animation: twinkle 3s ease-in-out infinite;
+}
+.star-slow {
+  display: inline-block;
+  animation: twinkle-slow 4s ease-in-out infinite;
+}
+.star-float {
+  display: inline-block;
+  animation: float 3s ease-in-out infinite, twinkle 2.5s ease-in-out infinite;
+}
+.star-delay-1 { animation-delay: 0.5s; }
+.star-delay-2 { animation-delay: 1s; }
+.star-delay-3 { animation-delay: 1.5s; }
+.star-delay-4 { animation-delay: 2s; }
+.star-delay-5 { animation-delay: 2.5s; }
+
+/* Subtle glow pulse on header */
+@keyframes glow-pulse {
+  0%, 100% { opacity: 0.03; }
+  50% { opacity: 0.08; }
+}
+.header-glow {
+  position: relative;
+}
+.header-glow::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 100%, rgba(139, 92, 246, 0.15), transparent 70%);
+  animation: glow-pulse 4s ease-in-out infinite;
+  pointer-events: none;
 }

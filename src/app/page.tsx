@@ -8,10 +8,38 @@ interface DiaryEntry {
   title: string;
   content: string;
   mood?: string;
+  section: string;
+  isPrivate: boolean;
   createdAt: number;
 }
 
-const MOODS = ["calm", "happy", "sad", "angry", "tired", "inspired"];
+const MOODS: { label: string; color: string; bg: string }[] = [
+  { label: "calm", color: "border-cyan-400 text-cyan-400", bg: "bg-cyan-400/10" },
+  { label: "happy", color: "border-amber-400 text-amber-400", bg: "bg-amber-400/10" },
+  { label: "sad", color: "border-blue-400 text-blue-400", bg: "bg-blue-400/10" },
+  { label: "angry", color: "border-red-400 text-red-400", bg: "bg-red-400/10" },
+  { label: "tired", color: "border-neutral-400 text-neutral-400", bg: "bg-neutral-400/10" },
+  { label: "inspired", color: "border-violet-400 text-violet-400", bg: "bg-violet-400/10" },
+];
+
+const SECTIONS: { label: string; color: string; bg: string }[] = [
+  { label: "personal", color: "border-violet-400 text-violet-400", bg: "bg-violet-400/10" },
+  { label: "public", color: "border-emerald-400 text-emerald-400", bg: "bg-emerald-400/10" },
+  { label: "work", color: "border-amber-400 text-amber-400", bg: "bg-amber-400/10" },
+];
+
+function getMood(mood?: string) {
+  return MOODS.find((m) => m.label === mood);
+}
+
+function getSection(section?: string) {
+  return SECTIONS.find((s) => s.label === section);
+}
+
+function getEntryImageUrl(entry: DiaryEntry): string {
+  const seed = entry.id.replace(/\D/g, "").slice(0, 8) || "0";
+  return `https://picsum.photos/seed/${seed}/800/400`;
+}
 
 function formatDate(timestamp: number): string {
   const d = new Date(timestamp);
@@ -38,6 +66,8 @@ export default function Home() {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [mood, setMood] = useState("");
+  const [section, setSection] = useState("personal");
+  const [isPrivate, setIsPrivate] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -50,16 +80,20 @@ export default function Home() {
   const [showLogin, setShowLogin] = useState(false);
   const [loginInput, setLoginInput] = useState("");
   const [loginError, setLoginError] = useState("");
+  const [imageLoaded, setImageLoaded] = useState(false);
 
   const authHeaders = useCallback(() => ({
     "Content-Type": "application/json",
     Authorization: `Bearer ${password}`,
   }), [password]);
 
-  // Fetch entries from API
   const fetchEntries = useCallback(async () => {
     try {
-      const res = await fetch("/api/entries");
+      const headers: Record<string, string> = {};
+      if (password) {
+        headers.Authorization = `Bearer ${password}`;
+      }
+      const res = await fetch("/api/entries", { headers });
       if (res.ok) {
         const data = await res.json();
         setEntries(data);
@@ -69,7 +103,7 @@ export default function Home() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [password]);
 
   useEffect(() => {
     fetchEntries();
@@ -79,7 +113,6 @@ export default function Home() {
       .catch(() => {});
   }, [fetchEntries]);
 
-  // Restore admin session
   useEffect(() => {
     const saved = sessionStorage.getItem("diary-admin");
     if (saved) {
@@ -88,7 +121,6 @@ export default function Home() {
     }
   }, []);
 
-  // Auto-focus textarea
   useEffect(() => {
     if (view === "write" && textareaRef.current) {
       textareaRef.current.focus();
@@ -100,9 +132,7 @@ export default function Home() {
     try {
       const res = await fetch("/api/verify", {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${loginInput}`,
-        },
+        headers: { Authorization: `Bearer ${loginInput}` },
       });
       if (res.ok) {
         setPassword(loginInput);
@@ -128,45 +158,33 @@ export default function Home() {
   async function saveEntry() {
     if (!content.trim() || saving) return;
     setSaving(true);
-
     try {
       let res: Response;
       if (editingId) {
         res = await fetch("/api/entries", {
           method: "PUT",
           headers: authHeaders(),
-          body: JSON.stringify({ id: editingId, title, content, mood }),
+          body: JSON.stringify({ id: editingId, title, content, mood, section, isPrivate }),
         });
       } else {
         res = await fetch("/api/entries", {
           method: "POST",
           headers: authHeaders(),
-          body: JSON.stringify({ title, content, mood }),
+          body: JSON.stringify({ title, content, mood, section, isPrivate }),
         });
       }
       if (!res.ok) return;
-
       const data = await res.json();
       setEntries(data.entries);
       setTitle("");
       setContent("");
       setMood("");
+      setSection("personal");
+      setIsPrivate(false);
       setEditingId(null);
       setView("list");
     } finally {
       setSaving(false);
-    }
-  }
-
-  async function deleteEntry(id: string) {
-    const res = await fetch(`/api/entries?id=${id}`, {
-      method: "DELETE",
-      headers: authHeaders(),
-    });
-    if (res.ok) {
-      await fetchEntries();
-      setView("list");
-      setSelectedEntry(null);
     }
   }
 
@@ -175,6 +193,8 @@ export default function Home() {
     setTitle(entry.title);
     setContent(entry.content);
     setMood(entry.mood || "");
+    setSection(entry.section || "personal");
+    setIsPrivate(entry.isPrivate || false);
     setView("write");
   }
 
@@ -192,9 +212,9 @@ export default function Home() {
   }, {});
 
   return (
-    <div className="min-h-screen bg-black text-neutral-300 flex flex-col">
+    <div className="min-h-screen bg-[#0a0a0a] text-neutral-300 flex flex-col">
       {/* Header */}
-      <header className="border-b border-neutral-900 px-6 py-5">
+      <header className="border-b border-neutral-800/50 px-6 py-5 bg-gradient-to-r from-violet-500/5 via-pink-500/5 to-cyan-500/5 header-glow">
         <div className="max-w-2xl mx-auto flex items-center justify-between">
           <div className="flex flex-col">
             <button
@@ -205,66 +225,83 @@ export default function Home() {
               }}
               className="text-left hover:opacity-80 transition-opacity"
             >
-              <span className="text-neutral-500 text-xs font-mono">✦ ♡ ✦</span>
-              <h1 className="text-white tracking-wide text-sm uppercase font-mono">
-                K&D <span className="text-neutral-500">♡</span> Public Dumping Journal
+              <h1 className="text-lg uppercase font-mono tracking-wide font-bold gradient-title">
+                <span className="star star-delay-1 text-violet-400/60 text-sm">✦</span>{" "}
+                D's Public Dumping Journal{" "}
+                <span className="star star-delay-3 text-pink-400/60 text-sm">✦</span>
               </h1>
-              <span className="text-neutral-500 text-xs font-mono">✦ ♡ ✦</span>
             </button>
             {views !== null && (
-              <span className="text-neutral-600 text-xs font-mono mt-1">
-                ★ {views.toLocaleString()} {views === 1 ? "visit" : "visits"} ★
+              <span className="text-xs font-mono mt-1">
+                <span className="star-slow star-delay-2 text-amber-400/40 text-[10px]">✧</span>{" "}
+                <span className="text-pink-400">{views.toLocaleString()}</span>
+                <span className="text-neutral-600"> {views === 1 ? "visit" : "visits"}</span>
               </span>
             )}
           </div>
 
-          {view === "list" && isAdmin && (
-            <button
-              onClick={() => {
-                setTitle("");
-                setContent("");
-                setMood("");
-                setEditingId(null);
-                setView("write");
-              }}
-              className="text-neutral-500 hover:text-white transition-colors text-sm font-mono tracking-wider"
-            >
-              + new
-            </button>
-          )}
-
-          {view === "write" && (
-            <div className="flex gap-4">
+          <div className="flex items-center gap-3">
+            {view === "list" && !isAdmin && (
               <button
-                onClick={() => {
-                  setView("list");
-                  setEditingId(null);
-                }}
-                className="text-neutral-600 hover:text-neutral-300 transition-colors text-sm font-mono"
+                onClick={() => setShowLogin(true)}
+                className="bg-gradient-to-r from-violet-500 to-pink-500 hover:from-violet-400 hover:to-pink-400 text-white text-xs font-mono font-bold px-5 py-2 rounded-full transition-all glow-violet"
               >
-                cancel
+                sign in
               </button>
-              <button
-                onClick={saveEntry}
-                disabled={saving}
-                className="text-white hover:opacity-70 transition-opacity text-sm font-mono disabled:opacity-30"
-              >
-                {saving ? "saving..." : "save"}
-              </button>
-            </div>
-          )}
+            )}
 
-          {view === "read" && (
-            <button
-              onClick={() => {
-                setView("list");
-                setSelectedEntry(null);
-              }}
-              className="text-neutral-500 hover:text-white transition-colors text-sm font-mono"
-            >
-              back
-            </button>
-          )}
+            {view === "list" && isAdmin && (
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => {
+                    setTitle("");
+                    setContent("");
+                    setMood("");
+                    setSection("personal");
+                    setIsPrivate(false);
+                    setEditingId(null);
+                    setView("write");
+                  }}
+                  className="bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 text-white text-xs font-mono font-bold px-5 py-2 rounded-full transition-all glow-emerald"
+                >
+                  + new dump
+                </button>
+                <button
+                  onClick={handleLogout}
+                  className="text-neutral-600 hover:text-pink-400 text-xs font-mono transition-colors"
+                >
+                  sign out
+                </button>
+              </div>
+            )}
+
+            {view === "write" && (
+              <div className="flex gap-3">
+                <button
+                  onClick={() => { setView("list"); setEditingId(null); }}
+                  className="text-neutral-500 hover:text-neutral-300 transition-colors text-xs font-mono px-4 py-2 rounded-full border border-neutral-800 hover:border-neutral-600"
+                >
+                  cancel
+                </button>
+                <button
+                  onClick={saveEntry}
+                  disabled={saving}
+                  className="bg-gradient-to-r from-violet-500 to-pink-500 hover:from-violet-400 hover:to-pink-400 disabled:opacity-30 text-white text-xs font-mono font-bold px-5 py-2 rounded-full transition-all glow-violet"
+                >
+                  {saving ? "saving..." : "save"}
+                </button>
+              </div>
+            )}
+
+            {view === "read" && (
+              <button
+                onClick={() => { setView("list"); setSelectedEntry(null); }}
+                className="text-neutral-500 hover:text-neutral-300 transition-colors text-xs font-mono px-4 py-2 rounded-full border border-neutral-800 hover:border-neutral-600"
+              >
+                back
+              </button>
+            )}
+          </div>
         </div>
       </header>
 
@@ -272,7 +309,7 @@ export default function Home() {
         {/* Loading */}
         {loading && (
           <div className="text-center py-24">
-            <p className="text-neutral-700 font-mono text-sm">loading...</p>
+            <p className="text-neutral-700 font-mono text-sm animate-pulse">loading...</p>
           </div>
         )}
 
@@ -286,23 +323,33 @@ export default function Home() {
                   placeholder="search entries..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full bg-transparent border-b border-neutral-800 pb-2 text-sm font-mono text-neutral-400 placeholder:text-neutral-700 focus:outline-none focus:border-neutral-600 transition-colors"
+                  className="w-full bg-transparent border-b border-neutral-800 pb-2 text-sm font-mono text-neutral-400 placeholder:text-neutral-700 focus:outline-none focus:border-violet-500/50 transition-colors"
                 />
               </div>
             )}
 
             {entries.length === 0 && (
               <div className="text-center py-24">
-                <p className="text-neutral-700 font-mono text-lg mb-2">♡ ✦ ♡</p>
+                <div className="mb-6">
+                  <span className="star-float text-violet-400/40 text-lg">✧</span>
+                  <span className="star-float star-delay-2 text-pink-400/30 text-sm mx-3">✦</span>
+                  <span className="star-float star-delay-4 text-cyan-400/40 text-xs">★</span>
+                </div>
+                <h2 className="text-4xl font-mono font-bold gradient-title mb-4">D</h2>
                 <p className="text-neutral-600 font-mono text-sm">
                   {isAdmin ? "nothing here yet — start dumping" : "no dumps yet — check back soon"}
                 </p>
+                <div className="mt-4 mb-2">
+                  <span className="star-float star-delay-5 text-amber-400/30 text-xs">✦</span>
+                  <span className="star-float star-delay-1 text-violet-400/20 text-sm mx-4">✧</span>
+                  <span className="star-float star-delay-3 text-pink-400/30 text-xs">✦</span>
+                </div>
                 {isAdmin && (
                   <button
                     onClick={() => setView("write")}
-                    className="mt-6 text-neutral-500 hover:text-white border border-neutral-800 hover:border-neutral-600 px-5 py-2 text-sm font-mono transition-all"
+                    className="mt-4 bg-gradient-to-r from-violet-500 to-pink-500 hover:from-violet-400 hover:to-pink-400 text-white px-6 py-2.5 text-sm font-mono font-bold rounded-full transition-all glow-violet"
                   >
-                    write your first entry
+                    write your first dump
                   </button>
                 )}
               </div>
@@ -310,39 +357,60 @@ export default function Home() {
 
             {Object.entries(grouped).map(([date, dateEntries]) => (
               <div key={date} className="mb-10">
-                <p className="text-neutral-600 text-xs font-mono tracking-widest uppercase mb-4">
-                  {date}
-                </p>
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="h-px flex-1 bg-gradient-to-r from-violet-500/30 to-transparent" />
+                  <span className="star star-delay-2 text-violet-400/40 text-[10px]">✦</span>
+                  <p className="text-violet-400 text-xs font-mono tracking-widest uppercase">
+                    {date}
+                  </p>
+                  <span className="star star-delay-4 text-pink-400/40 text-[10px]">✦</span>
+                  <div className="h-px flex-1 bg-gradient-to-l from-pink-500/30 to-transparent" />
+                </div>
                 <div className="space-y-1">
-                  {dateEntries.map((entry) => (
-                    <button
-                      key={entry.id}
-                      onClick={() => {
-                        setSelectedEntry(entry);
-                        setView("read");
-                      }}
-                      className="w-full text-left group py-3 px-4 -mx-4 hover:bg-neutral-950 transition-colors rounded"
-                    >
-                      <div className="flex items-baseline justify-between gap-4">
-                        <span className="text-neutral-300 group-hover:text-white transition-colors truncate">
-                          {entry.title}
-                        </span>
-                        <div className="flex items-center gap-3 shrink-0">
-                          {entry.mood && (
-                            <span className="text-neutral-700 text-xs font-mono">
-                              {entry.mood}
+                  {dateEntries.map((entry) => {
+                    const m = getMood(entry.mood);
+                    const s = getSection(entry.section);
+                    return (
+                      <button
+                        key={entry.id}
+                        onClick={() => {
+                          setSelectedEntry(entry);
+                          setImageLoaded(false);
+                          setView("read");
+                        }}
+                        className="entry-card w-full text-left group py-3 px-5 hover:bg-white/[0.02] transition-colors rounded-lg"
+                      >
+                        <div className="flex items-baseline justify-between gap-4">
+                          <div className="flex items-center gap-2 truncate">
+                            {entry.isPrivate && (
+                              <span className="text-pink-400/60 text-xs shrink-0" title="private">&#128274;</span>
+                            )}
+                            <span className="text-neutral-300 group-hover:text-white transition-colors truncate">
+                              {entry.title}
                             </span>
-                          )}
-                          <span className="text-neutral-700 text-xs font-mono">
-                            {formatTime(entry.createdAt)}
-                          </span>
+                          </div>
+                          <div className="flex items-center gap-3 shrink-0">
+                            {s && (
+                              <span className={`text-xs font-mono px-2 py-0.5 rounded-full ${s.bg} ${s.color.split(" ")[1]}`}>
+                                {entry.section}
+                              </span>
+                            )}
+                            {m && (
+                              <span className={`text-xs font-mono px-2 py-0.5 rounded-full ${m.bg} ${m.color.split(" ")[1]}`}>
+                                {entry.mood}
+                              </span>
+                            )}
+                            <span className="text-neutral-700 text-xs font-mono">
+                              {formatTime(entry.createdAt)}
+                            </span>
+                          </div>
                         </div>
-                      </div>
-                      <p className="text-neutral-600 text-sm mt-1 line-clamp-1">
-                        {entry.content}
-                      </p>
-                    </button>
-                  ))}
+                        <p className="text-neutral-600 text-sm mt-1 line-clamp-1">
+                          {entry.content}
+                        </p>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             ))}
@@ -353,8 +421,9 @@ export default function Home() {
         {view === "write" && (
           <div className="space-y-6">
             <div>
-              <p className="text-neutral-700 text-xs font-mono tracking-widest uppercase mb-4">
-                {editingId ? "editing" : formatDate(Date.now())}
+              <p className="text-xs font-mono tracking-widest uppercase mb-4">
+                <span className="star star-delay-2 text-violet-400/50 text-[10px]">✦</span>{" "}
+                <span className="text-violet-400">{editingId ? "editing" : formatDate(Date.now())}</span>
               </p>
               <input
                 type="text"
@@ -365,18 +434,53 @@ export default function Home() {
               />
             </div>
 
+            {/* Section selector */}
+            <div>
+              <p className="text-xs font-mono tracking-widest uppercase text-neutral-600 mb-2">section</p>
+              <div className="flex gap-2 flex-wrap">
+                {SECTIONS.map((s) => (
+                  <button
+                    key={s.label}
+                    onClick={() => setSection(s.label)}
+                    className={`text-xs font-mono px-3 py-1 border rounded-full transition-all ${
+                      section === s.label
+                        ? `${s.color} ${s.bg}`
+                        : "border-neutral-800 text-neutral-600 hover:border-neutral-600 hover:text-neutral-400"
+                    }`}
+                  >
+                    {s.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Privacy toggle */}
+            <div>
+              <button
+                onClick={() => setIsPrivate(!isPrivate)}
+                className={`text-xs font-mono px-3 py-1 border rounded-full transition-all ${
+                  isPrivate
+                    ? "border-pink-400 text-pink-400 bg-pink-400/10"
+                    : "border-neutral-800 text-neutral-600 hover:border-neutral-600 hover:text-neutral-400"
+                }`}
+              >
+                {isPrivate ? "private — hidden from visitors" : "public — visible to everyone"}
+              </button>
+            </div>
+
+            {/* Mood selector */}
             <div className="flex gap-2 flex-wrap">
               {MOODS.map((m) => (
                 <button
-                  key={m}
-                  onClick={() => setMood(mood === m ? "" : m)}
-                  className={`text-xs font-mono px-3 py-1 border transition-all ${
-                    mood === m
-                      ? "border-white text-white"
+                  key={m.label}
+                  onClick={() => setMood(mood === m.label ? "" : m.label)}
+                  className={`text-xs font-mono px-3 py-1 border rounded-full transition-all ${
+                    mood === m.label
+                      ? `${m.color} ${m.bg}`
                       : "border-neutral-800 text-neutral-600 hover:border-neutral-600 hover:text-neutral-400"
                   }`}
                 >
-                  {m}
+                  {m.label}
                 </button>
               ))}
             </div>
@@ -394,12 +498,57 @@ export default function Home() {
         {/* ===================== READ VIEW ===================== */}
         {view === "read" && selectedEntry && (
           <div>
+            {/* AI Generated Image */}
+            <div className="mb-6 rounded-xl overflow-hidden border border-neutral-800/50 relative">
+              {!imageLoaded && (
+                <div className="w-full h-[200px] bg-neutral-900 flex items-center justify-center">
+                  <span className="text-neutral-700 font-mono text-xs animate-pulse">generating art...</span>
+                </div>
+              )}
+              <img
+                src={getEntryImageUrl(selectedEntry)}
+                alt={`AI art for "${selectedEntry.title}"`}
+                className={`w-full h-[200px] object-cover transition-opacity duration-500 ${imageLoaded ? "opacity-100" : "opacity-0 absolute inset-0"}`}
+                onLoad={() => setImageLoaded(true)}
+                onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = "none";
+                  setImageLoaded(true);
+                }}
+              />
+              <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-[#0a0a0a] to-transparent pointer-events-none" />
+            </div>
+
             <div className="mb-8">
-              <p className="text-neutral-700 text-xs font-mono tracking-widest uppercase mb-3">
-                {formatDate(selectedEntry.createdAt)} &middot;{" "}
-                {formatTime(selectedEntry.createdAt)}
-                {selectedEntry.mood && ` \u00B7 ${selectedEntry.mood}`}
-              </p>
+              <div className="flex items-center gap-3 text-xs font-mono tracking-widest uppercase mb-4 flex-wrap">
+                <span className="star star-delay-1 text-violet-400/50 text-[10px]">✦</span>
+                <span className="text-violet-400">{formatDate(selectedEntry.createdAt)}</span>
+                <span className="text-neutral-800">/</span>
+                <span className="text-pink-400">{formatTime(selectedEntry.createdAt)}</span>
+                {selectedEntry.section && (
+                  <>
+                    <span className="text-neutral-800">/</span>
+                    <span className={`px-2 py-0.5 rounded-full ${getSection(selectedEntry.section)?.bg || "bg-neutral-400/10"} ${getSection(selectedEntry.section)?.color.split(" ")[1] || "text-neutral-500"}`}>
+                      {selectedEntry.section}
+                    </span>
+                  </>
+                )}
+                {selectedEntry.mood && (
+                  <>
+                    <span className="text-neutral-800">/</span>
+                    <span className={`px-2 py-0.5 rounded-full ${getMood(selectedEntry.mood)?.bg || ""} ${getMood(selectedEntry.mood)?.color.split(" ")[1] || "text-neutral-500"}`}>
+                      {selectedEntry.mood}
+                    </span>
+                  </>
+                )}
+                {selectedEntry.isPrivate && (
+                  <>
+                    <span className="text-neutral-800">/</span>
+                    <span className="px-2 py-0.5 rounded-full bg-pink-400/10 text-pink-400">
+                      private
+                    </span>
+                  </>
+                )}
+              </div>
               <h1 className="text-white text-2xl mb-6">
                 {selectedEntry.title}
               </h1>
@@ -409,22 +558,12 @@ export default function Home() {
             </div>
 
             {isAdmin && (
-              <div className="flex gap-4 pt-6 border-t border-neutral-900">
+              <div className="flex gap-3 pt-6 border-t border-neutral-800/50">
                 <button
                   onClick={() => startEdit(selectedEntry)}
-                  className="text-neutral-600 hover:text-white text-sm font-mono transition-colors"
+                  className="text-cyan-400 hover:text-cyan-300 text-sm font-mono transition-colors"
                 >
                   edit
-                </button>
-                <button
-                  onClick={() => {
-                    if (confirm("delete this entry?")) {
-                      deleteEntry(selectedEntry.id);
-                    }
-                  }}
-                  className="text-neutral-700 hover:text-red-400 text-sm font-mono transition-colors"
-                >
-                  delete
                 </button>
               </div>
             )}
@@ -433,77 +572,58 @@ export default function Home() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-neutral-900 px-6 py-4">
+      <footer className="border-t border-neutral-800/50 px-6 py-5 bg-gradient-to-r from-violet-500/5 via-transparent to-pink-500/5">
         <div className="max-w-2xl mx-auto flex justify-between items-center">
-          <span className="text-neutral-800 text-xs font-mono">
-            ♡ {entries.length} {entries.length === 1 ? "dump" : "dumps"} ♡
+          <span className="text-neutral-700 text-xs font-mono">
+            <span className="star-slow star-delay-3 text-amber-400/30 text-[10px] mr-1">✧</span>
+            <span className="text-amber-400">{entries.length}</span> {entries.length === 1 ? "dump" : "dumps"}
           </span>
-          {isAdmin ? (
-            <button
-              onClick={handleLogout}
-              className="text-neutral-800 hover:text-neutral-500 text-xs font-mono transition-colors"
-            >
-              sign out
-            </button>
-          ) : (
-            <button
-              onClick={() => setShowLogin(true)}
-              className="text-neutral-800 hover:text-neutral-500 text-xs font-mono transition-colors"
-            >
-              sign in
-            </button>
-          )}
+          <div className="flex items-center gap-2">
+            <span className="star-slow star-delay-1 text-violet-400/30 text-[10px]">✦</span>
+            <span className="text-xs font-mono font-bold gradient-title">
+              D
+            </span>
+            <span className="star-slow star-delay-5 text-pink-400/30 text-[10px]">✦</span>
+          </div>
         </div>
       </footer>
 
       {/* Login Modal */}
       {showLogin && (
         <div
-          className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 px-6"
-          onClick={() => {
-            setShowLogin(false);
-            setLoginInput("");
-            setLoginError("");
-          }}
+          className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 px-6"
+          onClick={() => { setShowLogin(false); setLoginInput(""); setLoginError(""); }}
         >
           <div
-            className="border border-neutral-800 bg-neutral-950 p-8 w-full max-w-sm"
+            className="border border-neutral-800 bg-[#111] rounded-2xl p-8 w-full max-w-sm relative overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
-            <p className="text-neutral-500 text-xs font-mono tracking-widest uppercase mb-6">
-              sign in
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-violet-500 via-pink-500 to-cyan-500" />
+            <p className="text-xs font-mono tracking-widest uppercase mb-6 gradient-title font-bold">
+              <span className="star star-delay-1 text-violet-400/50">✦</span> sign in <span className="star star-delay-3 text-pink-400/50">✦</span>
             </p>
             <input
               type="password"
               placeholder="password"
               value={loginInput}
-              onChange={(e) => {
-                setLoginInput(e.target.value);
-                setLoginError("");
-              }}
+              onChange={(e) => { setLoginInput(e.target.value); setLoginError(""); }}
               onKeyDown={(e) => e.key === "Enter" && handleLogin()}
               autoFocus
-              className="w-full bg-transparent border-b border-neutral-800 pb-2 text-sm font-mono text-neutral-300 placeholder:text-neutral-700 focus:outline-none focus:border-neutral-600 transition-colors mb-4"
+              className="w-full bg-transparent border-b border-neutral-800 pb-2 text-sm font-mono text-neutral-300 placeholder:text-neutral-700 focus:outline-none focus:border-violet-500/50 transition-colors mb-4"
             />
             {loginError && (
-              <p className="text-red-400/70 text-xs font-mono mb-4">
-                {loginError}
-              </p>
+              <p className="text-red-400 text-xs font-mono mb-4">{loginError}</p>
             )}
-            <div className="flex justify-end gap-4">
+            <div className="flex justify-end gap-3">
               <button
-                onClick={() => {
-                  setShowLogin(false);
-                  setLoginInput("");
-                  setLoginError("");
-                }}
-                className="text-neutral-600 hover:text-neutral-300 text-sm font-mono transition-colors"
+                onClick={() => { setShowLogin(false); setLoginInput(""); setLoginError(""); }}
+                className="text-neutral-500 hover:text-neutral-300 text-sm font-mono px-4 py-1.5 rounded-full border border-neutral-800 hover:border-neutral-600 transition-colors"
               >
                 cancel
               </button>
               <button
                 onClick={handleLogin}
-                className="text-white hover:opacity-70 text-sm font-mono transition-opacity"
+                className="bg-gradient-to-r from-violet-500 to-pink-500 hover:from-violet-400 hover:to-pink-400 text-white text-sm font-mono font-bold px-6 py-1.5 rounded-full transition-all glow-violet"
               >
                 enter
               </button>
