@@ -25,12 +25,6 @@ function getMood(mood?: string) {
 }
 
 function getEntryImageUrl(entry: DiaryEntry): string {
-  const moodStyle = entry.mood ? `, ${entry.mood} mood` : "";
-  const prompt = `dreamy abstract art for diary entry titled "${entry.title}"${moodStyle}, ethereal, soft colors, digital painting, aesthetic, no text`;
-  return `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=800&height=400&seed=${entry.id.replace(/\D/g, "").slice(0, 8)}&nologo=true`;
-}
-
-function getFallbackImageUrl(entry: DiaryEntry): string {
   const seed = entry.id.replace(/\D/g, "").slice(0, 8) || "0";
   return `https://picsum.photos/seed/${seed}/800/400`;
 }
@@ -447,14 +441,8 @@ export default function Home() {
                 className={`w-full h-[200px] object-cover transition-opacity duration-500 ${imageLoaded ? "opacity-100" : "opacity-0 absolute inset-0"}`}
                 onLoad={() => setImageLoaded(true)}
                 onError={(e) => {
-                  const img = e.target as HTMLImageElement;
-                  if (!img.dataset.fallback) {
-                    img.dataset.fallback = "true";
-                    img.src = getFallbackImageUrl(selectedEntry);
-                  } else {
-                    img.style.display = "none";
-                    setImageLoaded(true);
-                  }
+                  (e.target as HTMLImageElement).style.display = "none";
+                  setImageLoaded(true);
                 }}
               />
               <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-[#0a0a0a] to-transparent pointer-events-none" />
