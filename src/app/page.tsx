@@ -72,6 +72,7 @@ export default function Home() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [views, setViews] = useState<number | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Admin state
@@ -185,6 +186,24 @@ export default function Home() {
       setView("list");
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function deleteEntry(id: string) {
+    if (!confirm("delete this entry?")) return;
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/entries?id=${id}`, {
+        method: "DELETE",
+        headers: authHeaders(),
+      });
+      if (res.ok) {
+        setEntries((prev) => prev.filter((e) => e.id !== id));
+        setView("list");
+        setSelectedEntry(null);
+      }
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -564,6 +583,13 @@ export default function Home() {
                   className="text-cyan-400 hover:text-cyan-300 text-sm font-mono transition-colors"
                 >
                   edit
+                </button>
+                <button
+                  onClick={() => deleteEntry(selectedEntry.id)}
+                  disabled={deleting}
+                  className="text-red-500/60 hover:text-red-400 disabled:opacity-30 text-sm font-mono transition-colors"
+                >
+                  {deleting ? "deleting..." : "delete"}
                 </button>
               </div>
             )}
